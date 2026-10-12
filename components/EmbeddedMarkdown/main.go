@@ -4,8 +4,6 @@ import (
 	"goLogMyTime/components/common/globals"
 	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/utils/layout"
-	"goLogMyTime/utils/mouse"
 	"os"
 
 	"charm.land/bubbles/v2/textarea"
@@ -25,8 +23,7 @@ type Model struct {
 	Filepath  string
 	Textarea  textarea.Model
 	status    string
-	height    int
-	width     int
+	Width     int
 }
 
 func saveFileCmd(path string, content string) tea.Cmd {
@@ -44,7 +41,13 @@ func InitialModel(filepath string, dataSource *taskStore.TaskStore) Model {
 
 	ta := textarea.New()
 	ta.SetValue(string(content))
-	ta.ShowLineNumbers = false
+	ta.ShowLineNumbers = true
+	ta.Prompt = ""
+
+	styles := ta.Styles()
+	styles.Focused.CursorLine = lipgloss.NewStyle()
+	styles.Focused.Text = lipgloss.NewStyle()
+	ta.SetStyles(styles)
 
 	return Model{
 		Shortcut: globals.EmbeddedFileSection.Shortcut,
@@ -57,32 +60,28 @@ func InitialModel(filepath string, dataSource *taskStore.TaskStore) Model {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmds []tea.Cmd
-	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.height = msg.Height - 4
-		m.width = layout.GetEditorWidth(msg.Width)
 
-	case tea.MouseClickMsg:
-		// TODO: handle in parent component
-		if mouse.IsLeftClickInBoundsOf(m.Zone, msg) {
-			cmd = m.Textarea.Focus()
-			m.IsFocused = true
-			return m, cmd
-		} else {
-			m.IsFocused = false
-			m.Textarea.Blur()
-			return m, nil
+	case tea.WindowSizeMsg:
+		m.Textarea.SetHeight(msg.Height - 4)
+		m.Textarea.SetWidth(m.Width - 2)
+
+	case globals.FocusSectionMsg:
+		if string(msg) == m.Shortcut {
+			cmds = append(cmds, m.focus())
+		}
+
+	case globals.BlurSectionMsg:
+		if string(msg) == m.Shortcut {
+			m.blur()
 		}
 
 	case tea.KeyPressMsg:
-		// TODO: handle in parent component
 		if m.Textarea.Focused() {
 			switch msg.String() {
 			case "esc":
-				m.IsFocused = false
-				m.Textarea.Blur()
+				m.blur()
 				return m, nil
 
 			default:
@@ -102,43 +101,44 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	m.Textarea, taCmd = m.Textarea.Update(msg)
 	cmds = append(cmds, taCmd)
 
-	// if m.Textarea.Focused() {
-	// 	if _, ok := msg.(tea.KeyPressMsg); ok {
-	// 		cmds = append(cmds, saveFileCmd(m.Filepath, m.Textarea.Value()))
-	// 	}
-	// }
-
 	return m, tea.Batch(cmds...)
 }
 
+func (m *Model) focus() tea.Cmd {
+	m.IsFocused = true
+	return m.Textarea.Focus()
+}
+
+func (m *Model) blur() {
+	m.IsFocused = false
+	m.Textarea.Blur()
+}
+
 func (m Model) View() tea.View {
-	var title = lipgloss.Sprintf("Notes [%s]", m.Shortcut)
-
-	m.Textarea.SetHeight(m.height)
-	m.Textarea.SetWidth(m.width)
-
-	editorView := m.Textarea.View()
-	statusBar := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render(m.status)
-
-	baseStyle := commonStyles.EmbeddedSectionContainerBlurred
-	if m.IsFocused {
-		baseStyle = commonStyles.EmbeddedSectionContainerFocused
-	}
+	title := lipgloss.Sprintf("[%s] Notes", m.Shortcut)
 
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		baseStyle.Width(m.width).UnsetAlign().Render(
+		m.getStyle().Padding(0, 0, 0, 2).Width(m.Width).UnsetAlign().Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				lipgloss.JoinHorizontal(
 					lipgloss.Top,
 					commonStyles.SectionTitle.Render(title),
 					" ",
-					statusBar,
+					commonStyles.EmbeddedStatusBar.Render(m.status),
 					"\n",
 				),
-				editorView,
+				m.Textarea.View(),
 			),
 		),
 	))
+}
+
+func (m *Model) getStyle() lipgloss.Style {
+	if m.IsFocused {
+		return commonStyles.EmbeddedSectionContainerFocused
+	}
+
+	return commonStyles.EmbeddedSectionContainerBlurred
 }

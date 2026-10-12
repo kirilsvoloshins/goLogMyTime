@@ -13,6 +13,9 @@ var Tutorial = lipgloss.NewStyle().
 	Padding(0, 0).
 	Align(lipgloss.Left, lipgloss.Top)
 
+var EmbeddedStatusBar = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("8"))
+
 var EmbeddedSectionContainerBlurred = lipgloss.NewStyle().
 	BorderStyle(lipgloss.NormalBorder()).
 	BorderForeground(lipgloss.Color("69")).

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/utils/layout"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -13,25 +12,20 @@ import (
 
 type Model struct {
 	DataSource *taskStore.TaskStore
-	width      int
+	Width      int
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width = layout.GetSectionWidth(msg.Width)
-	}
-
 	return m, nil
 }
 
 func (m Model) View() tea.View {
 	todaysProgressPercent := m.DataSource.GetTodaysProgreesPercent()
 	title := fmt.Sprintf("Days progress: %0.f%%", todaysProgressPercent)
-	content := m.getStringBar(todaysProgressPercent)
+	content := "0 [" + m.getStringBar(todaysProgressPercent) + "] 8h"
 
 	return tea.NewView(
-		commonStyles.BorderedCentered.Width(m.width).Render(
+		commonStyles.BorderedCentered.Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
 				commonStyles.SectionTitle.Render(title),
@@ -42,23 +36,22 @@ func (m Model) View() tea.View {
 }
 
 func (m Model) getStringBar(daysProgressPercent float64) string {
-	var charNumTotal int
-	var charNumFilled int
-	charNumTotal = min(m.width-12, 33)
+	charNumTotal := min(m.Width-12, 33)
 	ratio := daysProgressPercent / 100.0
-
-	charNumFilled = min(charNumTotal, int(ratio*float64(charNumTotal)))
+	charNumFilled := min(charNumTotal, int(ratio*float64(charNumTotal)))
 
 	var sb strings.Builder
-	sb.WriteString("0 [")
+
 	for charId := range charNumTotal {
 		if charId < charNumFilled {
-			sb.WriteString("#")
+			sb.WriteString(filled)
 		} else {
-			sb.WriteString(" ")
+			sb.WriteString(empty)
 		}
 	}
-	sb.WriteString("] 8h")
 
 	return sb.String()
 }
+
+var filled = "#"
+var empty = " "

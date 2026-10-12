@@ -1,6 +1,7 @@
 package taskStore
 
 import (
+	"goLogMyTime/components/common/globals"
 	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/conversions"
@@ -11,15 +12,16 @@ import (
 )
 
 type TaskStore struct {
-	TaskDefinitionMap            types.TaskDefinitionMap
-	TaskRecordsByDateMap         types.TaskRecordsByDateMap
-	TimeTableDaysOffsetFromToday int
 	TodaysDate                   time.Time
 	TodaysDateString             string
-	InputTaskDescription         string
+	TaskDefinitionMap            types.TaskDefinitionMap
+	TaskRecordsByDateMap         types.TaskRecordsByDateMap
+	TaskInputState               int
 	InputTaskTicket              string
+	InputTaskDescription         string
 	TasksRecentCursor            int
 	TasksFavoriteCursor          int
+	TimeTableDaysOffsetFromToday int
 }
 
 func New() *TaskStore {
@@ -162,9 +164,8 @@ func (s *TaskStore) TaskStart(taskDefinition *types.TaskDefinition) {
 	s.TaskRecordsByDateMap[s.TodaysDateString] = append(
 		taskRecordsAtDate,
 		types.TaskRecord{
-			Ticket:      taskDefinition.Ticket,
-			Description: taskDefinition.Info,
-			// Description:      s.InputTaskDescription,
+			Ticket:           taskDefinition.Ticket,
+			Description:      taskDefinition.Info,
 			TimestampOfStart: date.GetTimestamp(),
 			IsActive:         true,
 			TimestampOfEnd:   0,
@@ -174,11 +175,9 @@ func (s *TaskStore) TaskStart(taskDefinition *types.TaskDefinition) {
 	file.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
 	file.WriteTimestampOfLastActivity(s.TaskDefinitionMap, *taskDefinition)
 
-	ptr1 := &s.InputTaskTicket
-	*ptr1 = taskDefinition.Ticket
-	ptr2 := &s.InputTaskDescription
-	*ptr2 = taskDefinition.Info
-
+	s.InputTaskTicket = taskDefinition.Ticket
+	s.InputTaskDescription = taskDefinition.Info
+	s.TaskInputState = globals.TASK_INPUT_VALID_ACTIVE
 	s.Sync()
 }
 
@@ -187,12 +186,6 @@ func (s *TaskStore) TasksStopAtDate(dateString string) {
 	if !ok {
 		return
 	}
-
-	// TODO: does not work it seems
-	ptr1 := &s.InputTaskTicket
-	*ptr1 = ""
-	ptr2 := &s.InputTaskDescription
-	*ptr2 = ""
 
 	// TODO: make a util for stopping a record...
 	for i := range taskRecordsAtDate {
@@ -207,6 +200,10 @@ func (s *TaskStore) TasksStopAtDate(dateString string) {
 	}
 
 	file.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
+
+	s.InputTaskTicket = ""
+	s.InputTaskDescription = ""
+	s.TaskInputState = globals.TASK_INPUT_EMPTY
 	s.Sync()
 }
 
@@ -250,8 +247,15 @@ func (s *TaskStore) DecrementOrResetTasksFavoriteCursor() bool {
 	return true
 }
 
-func (s *TaskStore) GetTimeTable(dateBeingChecked string) *types.TimeTable {
-	allRecordsAtDate, dateHasRecords := s.TaskRecordsByDateMap[dateBeingChecked]
+func (s *TaskStore) GetDateAndTimeTable() (string, *types.TimeTable) {
+	date1 := s.TodaysDate.AddDate(0, 0, s.TimeTableDaysOffsetFromToday)
+	dateString := date.DateToString(date1)
+	timeTable := s.GetTimeTable(dateString)
+	return dateString, timeTable
+}
+
+func (s *TaskStore) GetTimeTable(dateString string) *types.TimeTable {
+	allRecordsAtDate, dateHasRecords := s.TaskRecordsByDateMap[dateString]
 	if !dateHasRecords || len(allRecordsAtDate) == 0 {
 		return nil
 	}
@@ -323,6 +327,22 @@ func (s *TaskStore) GetInputTaskDefinition() *types.TaskDefinition {
 	}
 
 	return nil
+}
+
+func (s *TaskStore) GetTaskInputState() int {
+	taskDefinition := s.GetInputTaskDefinition()
+	if taskDefinition != nil {
+		if s.IsTaskStarted(taskDefinition) {
+			return globals.TASK_INPUT_VALID_ACTIVE
+		}
+		return globals.TASK_INPUT_VALID_INACTIVE
+	}
+
+	if s.IsInputTaskValidAndNew() {
+		return globals.TASK_INPUT_VALID_NEW
+	}
+
+	return globals.TASK_INPUT_EMPTY
 }
 
 var WORK_DAY_IN_MINUTES = 8 * 60

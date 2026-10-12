@@ -2,12 +2,11 @@ package TimeTable
 
 import (
 	"fmt"
+	"goLogMyTime/components/common/globals"
 	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/date"
-	"goLogMyTime/utils/layout"
-	"goLogMyTime/utils/mouse"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -15,80 +14,80 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
-var buttonDayBeforeId = "dayBefore"
-var buttonDayAfterId = "dayAfter"
-
 type Model struct {
 	DataSource *taskStore.TaskStore
 	IsFocused  bool
 	Shortcut   string
 	Zone       string
-	width      int
+	Width      int
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.MouseClickMsg:
-		m.IsFocused = mouse.IsLeftClickInBoundsOf(m.Zone, msg)
-		if mouse.IsLeftClickInBoundsOf(buttonDayBeforeId, msg) {
-			m.DataSource.TimeTableDaysOffsetFromToday--
-		} else if mouse.IsLeftClickInBoundsOf(buttonDayAfterId, msg) {
-			m.DataSource.TimeTableDaysOffsetFromToday++
+
+	case globals.FocusSectionMsg:
+		if string(msg) == m.Shortcut {
+			m.focus()
 		}
-	case tea.WindowSizeMsg:
-		m.width = layout.GetSectionWidth(msg.Width)
+
+	case globals.BlurSectionMsg:
+		if string(msg) == m.Shortcut {
+			m.blur()
+		}
+
 	}
 
 	return m, nil
 }
 
-func (m Model) View() tea.View {
-	dateBeingChecked := m.DataSource.TodaysDate.AddDate(0, 0, m.DataSource.TimeTableDaysOffsetFromToday)
-	dateString := date.DateToString(dateBeingChecked)
-	var title = lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut)
+func (m *Model) focus() {
+	m.IsFocused = true
+}
 
-	timetable := m.DataSource.GetTimeTable(dateString)
+func (m *Model) blur() {
+	m.IsFocused = false
+}
+
+func (m Model) View() tea.View {
+	dateString, timeTable := m.DataSource.GetDateAndTimeTable()
+	title := lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut)
 
 	var sb strings.Builder
 
-	if timetable != nil {
-		for _, record := range *timetable {
-			sb.WriteString("\n")
+	if timeTable != nil {
+		for _, record := range *timeTable {
 			taskDefinition, ok := m.DataSource.TaskDefinitionMap[record.Name]
 			assert.Assert(ok, "very not ok")
 
-			hours := int(record.Minutes / 60)
-			minutes := record.Minutes - hours*60
-			sb.WriteString(fmt.Sprintf("%s - %s - %dh %dmin", taskDefinition.Info, record.Name, hours, minutes))
+			hours, minutes := date.MinutesToHoursMinutes(record.Minutes)
+			sb.WriteString(fmt.Sprintf("\n%s - %s - %dh %dmin", taskDefinition.Info, record.Name, hours, minutes))
 		}
 	}
 
 	ButtonDayBefore := tea.NewView(zone.Mark(
-		buttonDayBeforeId,
+		globals.PrevDateZone,
 		commonStyles.ButtonStyleNotStarted.Render("<< day before"),
 	))
 
 	ButtonDayAfter := tea.NewView(zone.Mark(
-		buttonDayAfterId,
+		globals.NextDateZone,
 		commonStyles.ButtonStyleNotStarted.Render("day after >>"),
 	))
 
-	buttons := lipgloss.JoinHorizontal(
-		lipgloss.Bottom,
-		ButtonDayBefore.Content,
-		"   ",
-		ButtonDayAfter.Content,
-	)
-
 	content := lipgloss.JoinVertical(
 		lipgloss.Right,
-		buttons,
+		lipgloss.JoinHorizontal(
+			lipgloss.Bottom,
+			ButtonDayBefore.Content,
+			"   ",
+			ButtonDayAfter.Content,
+		),
 		sb.String(),
 	)
 
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		commonStyles.GetSectionStyle(m.IsFocused).Width(m.width).Render(
+		commonStyles.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
 				commonStyles.SectionTitle.Render(title),

@@ -11,3 +11,9 @@ func DateToString(date1 time.Time) string {
 func GetTimestamp() int64 {
 	return time.Now().UnixMilli()
 }
+
+func MinutesToHoursMinutes(minutesSrc int) (int, int) {
+	hours := int(minutesSrc / 60)
+	minutes := minutesSrc - hours*60
+	return hours, minutes
+}

@@ -2,6 +2,7 @@ package TasksFavorite
 
 import (
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
+	"goLogMyTime/components/common/globals"
 	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"strings"
@@ -23,8 +24,8 @@ type Model struct {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
 	var cmds []tea.Cmd
+	var cmd tea.Cmd
 
 	taskDefinitionsFavorite := m.DataSource.GetTaskDefinitionsFavorite()
 
@@ -44,7 +45,29 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	switch msg := msg.(type) {
+
+	case globals.FocusSectionMsg:
+		if string(msg) == m.Shortcut {
+			m.focus()
+		}
+
+	case globals.BlurSectionMsg:
+		if string(msg) == m.Shortcut {
+			m.blur()
+		}
+
+	}
+
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) focus() {
+	m.IsFocused = true
+}
+
+func (m *Model) blur() {
+	m.IsFocused = false
 }
 
 func (m Model) View() tea.View {
@@ -81,10 +104,9 @@ func (m Model) View() tea.View {
 	for index, line := range linesRendered {
 		sb.WriteString("\n")
 		if index == cursor && m.IsFocused {
-			sb.WriteString("> " + line)
-		} else {
-			sb.WriteString(line)
+			sb.WriteString("> ")
 		}
+		sb.WriteString(line)
 	}
 
 	return tea.NewView(zone.Mark(

@@ -1,9 +1,10 @@
 package ButtonCreateStartStop
 
 import (
+	"goLogMyTime/components/common/globals"
 	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/domain/types"
+	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/mouse"
 
 	tea "charm.land/bubbletea/v2"
@@ -17,66 +18,62 @@ type Model struct {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmd tea.Cmd
+	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.MouseClickMsg:
-		// TODO: get task definition from the store data
-		taskDefinition := m.DataSource.GetInputTaskDefinition()
-		buttonId := m.getButtonId(taskDefinition)
 
-		if mouse.IsLeftClickInBoundsOf(buttonId, msg) {
+	case tea.MouseClickMsg:
+		if mouse.IsLeftClickInBoundsOf(globals.CreateStartStopZone, msg) {
+			taskDefinition := m.DataSource.GetInputTaskDefinition()
+
 			if taskDefinition != nil {
 				m.DataSource.TaskToggle(taskDefinition)
-			} else if m.DataSource.IsInputTaskValidAndNew() {
+				return m, tea.Batch(cmds...)
+			}
+
+			if m.DataSource.IsInputTaskValidAndNew() {
 				m.DataSource.TaskCreate()
+				return m, tea.Batch(cmds...)
 			}
 		}
+
 	}
 
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) View() tea.View {
-	taskDefinition := m.DataSource.GetInputTaskDefinition()
-
-	button := Button{
-		id:    m.getButtonId(taskDefinition),
-		label: "<- input",
-		style: commonStyles.ButtonStyleDisabled,
-	}
-
-	if taskDefinition != nil {
-		if m.DataSource.IsTaskStarted(taskDefinition) {
-			button.label = "stop"
-			button.style = commonStyles.ButtonStyleStarted
-		} else {
-			button.label = "start"
-			button.style = commonStyles.ButtonStyleNotStarted
-		}
-	} else if m.DataSource.IsInputTaskValidAndNew() {
-		button.label = "create"
-		button.style = commonStyles.ButtonStyleNotStarted
-	}
-
-	button.style.Width(commonStyles.ButtonWidth)
+	button, ok := buttonMap[m.DataSource.TaskInputState]
+	assert.Assert(ok, "Invalid task input state")
 
 	return tea.NewView(zone.Mark(
-		button.id,
-		button.style.Render(button.label),
+		globals.CreateStartStopZone,
+		button.style.Width(commonStyles.ButtonWidth).Render(button.label),
 	))
 }
 
-func (m Model) getButtonId(taskDefinition *types.TaskDefinition) string {
-	if taskDefinition == nil {
-		return "CREATE_NEW_TASK_DEFINITION"
-	}
-
-	return m.IdPrefix + taskDefinition.Ticket
-}
-
 type Button struct {
-	id    string
 	label string
 	style lipgloss.Style
+}
+
+type ButtonMap map[int]Button
+
+var buttonMap = ButtonMap{
+	globals.TASK_INPUT_EMPTY: Button{
+		label: "<- input",
+		style: commonStyles.ButtonStyleDisabled,
+	},
+	globals.TASK_INPUT_VALID_NEW: Button{
+		label: "create",
+		style: commonStyles.ButtonStyleNotStarted,
+	},
+	globals.TASK_INPUT_VALID_INACTIVE: Button{
+		label: "start",
+		style: commonStyles.ButtonStyleNotStarted,
+	},
+	globals.TASK_INPUT_VALID_ACTIVE: Button{
+		label: "stop",
+		style: commonStyles.ButtonStyleStarted,
+	},
 }

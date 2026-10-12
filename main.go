@@ -48,33 +48,34 @@ type BaseModel struct {
 }
 
 func (m BaseModel) Init() tea.Cmd {
-	var cmds []tea.Cmd
-	cmds = append(
-		cmds,
-		tickToSync(),
-	)
-
-	return tea.Batch(cmds...)
+	return tickToSync()
 }
 
 var prevTaskActivePtr *types.TaskRecord
 
-func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
+func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
+	var cmd tea.Cmd
+
+	m.dataSource.TaskInputState = m.dataSource.GetTaskInputState()
 
 	taskActivePtr := m.dataSource.GetTaskRecordActive()
 	if taskActivePtr != prevTaskActivePtr {
 		prevTaskActivePtr = taskActivePtr
-		if taskActivePtr == nil {
-			*m.nowDoing.TextInputDescription.StringPtr = ""
-			*m.nowDoing.TextInputTask.StringPtr = ""
-		} else {
-			*m.nowDoing.TextInputDescription.StringPtr = taskActivePtr.Description
-			*m.nowDoing.TextInputTask.StringPtr = taskActivePtr.Ticket
+
+		if taskActivePtr != nil {
+			m.dataSource.InputTaskDescription = taskActivePtr.Description
+			m.dataSource.InputTaskTicket = taskActivePtr.Ticket
 		}
-		m.nowDoing.TextInputDescription.TextInput.SetValue(*m.nowDoing.TextInputDescription.StringPtr)
-		m.nowDoing.TextInputTask.TextInput.SetValue(*m.nowDoing.TextInputTask.StringPtr)
+
+		desc := m.dataSource.InputTaskDescription
+		task := m.dataSource.InputTaskTicket
+
+		*m.nowDoing.TextInputDescription.StringPtr = desc
+		m.nowDoing.TextInputDescription.TextInput.SetValue(desc)
+
+		*m.nowDoing.TextInputTask.StringPtr = task
+		m.nowDoing.TextInputTask.TextInput.SetValue(task)
 	}
 
 	switch msg := msg.(type) {
@@ -87,33 +88,42 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.nowDoing.Width = sectionWidth
 		m.tasksFavorite.Width = sectionWidth
 		m.tasksRecent.Width = sectionWidth
+		m.tutorial.Width = sectionWidth
+		m.todaysProgress.Width = sectionWidth
+		m.timetable.Width = sectionWidth
+		m.embeddedMarkdown.Width = layout.GetEditorWidth(msg.Width)
 
 	case tea.MouseClickMsg:
-		m.nowDoing.IsFocused = mouse.IsLeftClickInBoundsOf(m.nowDoing.Zone, msg)
-		m.tasksFavorite.IsFocused = mouse.IsLeftClickInBoundsOf(m.tasksFavorite.Zone, msg)
-		m.tasksRecent.IsFocused = mouse.IsLeftClickInBoundsOf(m.tasksRecent.Zone, msg)
-		m.timetable.IsFocused = mouse.IsLeftClickInBoundsOf(m.timetable.Zone, msg)
+		switch true {
 
-		if mouse.IsLeftClickInBoundsOf(globals.TextInputTaskZone, msg) {
-			cmds = append(cmds, m.nowDoing.TextInputTask.TextInput.Focus())
-		} else {
-			m.nowDoing.TextInputTask.TextInput.Blur()
-		}
+		case mouse.IsLeftClickInBoundsOf(m.nowDoing.Zone, msg):
+			cmds = append(cmds, globals.FocusSection(m.nowDoing.Shortcut))
 
-		if mouse.IsLeftClickInBoundsOf(globals.TextInputDescriptionZone, msg) {
-			cmds = append(cmds, m.nowDoing.TextInputDescription.TextInput.Focus())
-		} else {
-			m.nowDoing.TextInputDescription.TextInput.Blur()
+		case mouse.IsLeftClickInBoundsOf(m.tasksFavorite.Zone, msg):
+			cmds = append(cmds, globals.FocusSection(m.tasksFavorite.Shortcut))
+
+		case mouse.IsLeftClickInBoundsOf(m.tasksRecent.Zone, msg):
+			cmds = append(cmds, globals.FocusSection(m.tasksRecent.Shortcut))
+
+		case mouse.IsLeftClickInBoundsOf(m.timetable.Zone, msg):
+			cmds = append(cmds, globals.FocusSection(m.timetable.Shortcut))
+
+		case mouse.IsLeftClickInBoundsOf(m.embeddedMarkdown.Zone, msg):
+			cmds = append(cmds, globals.FocusSection(m.embeddedMarkdown.Shortcut))
+
 		}
 
 	case tea.KeyPressMsg:
 		switch msg.String() {
+
 		case "ctrl+c":
 			return m, tea.Quit
+
 		case "1", "2", "3", "4", "5":
 			if m.AreTextInputsBlurred() {
-				cmds = append(cmds, m.FocusSection(msg.String()))
+				return m, globals.FocusSection(msg.String())
 			}
+
 		case "h", "j", "k", "l", "down", "up", "tab", "shift+tab":
 			keyString := msg.String()
 
@@ -132,35 +142,23 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch true {
 
 			case m.nowDoing.IsFocused:
-				if isTabKey || isShiftTabKey {
-					if m.nowDoing.TextInputTask.TextInput.Focused() {
-						cmds = append(cmds, m.nowDoing.TextInputDescription.TextInput.Focus())
-						m.nowDoing.TextInputTask.TextInput.Blur()
-						break
-					} else {
-						cmds = append(cmds, m.nowDoing.TextInputTask.TextInput.Focus())
-						m.nowDoing.TextInputDescription.TextInput.Blur()
-						break
-					}
-				}
-
 				if isDown && m.AreTextInputsBlurred() {
-					cmds = append(cmds, m.FocusSection("2"))
-					break
+					cmds = append(cmds, globals.FocusSection(m.tasksRecent.Shortcut))
+					return m, tea.Batch(cmds...)
 				}
 
 			case m.tasksRecent.IsFocused:
 				if isUp {
 					isWithinSection := m.dataSource.DecrementOrResetTasksRecentCursor()
 					if !isWithinSection {
-						cmds = append(cmds, m.FocusSection("1"))
-						break
+						cmds = append(cmds, globals.FocusSection(m.nowDoing.Shortcut))
+						return m, tea.Batch(cmds...)
 					}
 				} else if isDown {
 					isWithinSection := m.dataSource.IncrementOrResetTasksRecentCursor()
 					if !isWithinSection {
-						cmds = append(cmds, m.FocusSection("3"))
-						break
+						cmds = append(cmds, globals.FocusSection(m.tasksFavorite.Shortcut))
+						return m, tea.Batch(cmds...)
 					}
 				}
 
@@ -168,27 +166,28 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if isUp {
 					isWithinSection := m.dataSource.DecrementOrResetTasksFavoriteCursor()
 					if !isWithinSection {
-						cmds = append(cmds, m.FocusSection("2"))
-						break
+						cmds = append(cmds, globals.FocusSection(m.tasksRecent.Shortcut))
+						return m, tea.Batch(cmds...)
 					}
 				} else if isDown {
 					isWithinSection := m.dataSource.IncrementOrResetTasksFavoriteCursor()
 					if !isWithinSection {
-						cmds = append(cmds, m.FocusSection("4"))
-						break
+						cmds = append(cmds, globals.FocusSection(m.timetable.Shortcut))
+						return m, tea.Batch(cmds...)
 					}
 				}
 
 			case m.timetable.IsFocused:
 				if isTabKey || isLKey {
 					m.dataSource.TimeTableDaysOffsetFromToday++
+					return m, tea.Batch(cmds...)
 				} else if isShiftTabKey || isHKey {
 					m.dataSource.TimeTableDaysOffsetFromToday--
+					return m, tea.Batch(cmds...)
 				} else if isUp {
-					cmds = append(cmds, m.FocusSection("3"))
-					break
+					cmds = append(cmds, globals.FocusSection(m.tasksFavorite.Shortcut))
+					return m, tea.Batch(cmds...)
 				}
-
 			}
 
 		case "enter", "space":
@@ -200,9 +199,18 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if isEnterKey {
 					taskDefinition := m.dataSource.GetInputTaskDefinition()
 					if taskDefinition != nil {
+						wasActive := m.dataSource.IsTaskStarted(taskDefinition)
 						m.dataSource.TaskToggle(taskDefinition)
+						if wasActive {
+							cmds = append(cmds, globals.FocusSection(m.nowDoing.Shortcut))
+						} else {
+							m.nowDoing.BlurOnlyInputs()
+						}
+						return m, tea.Batch(cmds...)
 					} else if m.dataSource.IsInputTaskValidAndNew() {
 						m.dataSource.TaskCreate()
+						m.nowDoing.BlurOnlyInputs()
+						return m, tea.Batch(cmds...)
 					}
 				}
 
@@ -210,22 +218,23 @@ func (m BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				taskDefinitions := m.dataSource.GetTaskDefinitionsRecent(true)
 				length := len(taskDefinitions)
 				if length == 0 {
-					break
+					return m, tea.Batch(cmds...)
 				}
 
 				taskDefinition := taskDefinitions[m.dataSource.TasksRecentCursor]
 				m.dataSource.TaskToggle(&taskDefinition)
+				return m, tea.Batch(cmds...)
 
 			case m.tasksFavorite.IsFocused:
 				taskDefinitions := m.dataSource.GetTaskDefinitionsFavorite()
 				length := len(taskDefinitions)
 				if length == 0 {
-					break
+					return m, tea.Batch(cmds...)
 				}
 
 				taskDefinition := taskDefinitions[m.dataSource.TasksFavoriteCursor]
 				m.dataSource.TaskToggle(&taskDefinition)
-
+				return m, tea.Batch(cmds...)
 			}
 		}
 	}
@@ -283,30 +292,20 @@ func (m BaseModel) View() tea.View {
 	return view
 }
 
-func (m BaseModel) FocusSection(shortcutDigit string) tea.Cmd {
-	var cmd tea.Cmd
-
-	m.nowDoing.IsFocused = shortcutDigit == m.nowDoing.Shortcut
-	if m.nowDoing.IsFocused {
-		return m.nowDoing.TextInputTask.TextInput.Focus()
-	}
-
-	m.tasksFavorite.IsFocused = shortcutDigit == m.tasksFavorite.Shortcut
-	m.tasksRecent.IsFocused = shortcutDigit == m.tasksRecent.Shortcut
-	m.timetable.IsFocused = shortcutDigit == m.timetable.Shortcut
-	m.embeddedMarkdown.IsFocused = shortcutDigit == m.embeddedMarkdown.Shortcut
-
-	if m.embeddedMarkdown.IsFocused {
-		return m.embeddedMarkdown.Textarea.Focus()
-	}
-
-	return cmd
-}
-
 func (m BaseModel) AreTextInputsBlurred() bool {
 	return !m.nowDoing.TextInputDescription.TextInput.Focused() &&
 		!m.nowDoing.TextInputTask.TextInput.Focused() &&
 		!m.embeddedMarkdown.Textarea.Focused()
+}
+
+func (m BaseModel) getTextInputValues() (string, string) {
+	taskActivePtr := m.dataSource.GetTaskRecordActive()
+
+	if taskActivePtr == nil {
+		return "", ""
+	}
+
+	return taskActivePtr.Description, taskActivePtr.Ticket
 }
 
 func main() {
@@ -347,14 +346,16 @@ func main() {
 				IdPrefix:   "N_",
 			},
 			TextInputDescription: &TextInputWrapper.Model{
-				Zone:      globals.TextInputDescriptionZone,
-				TextInput: textinput.New(),
-				StringPtr: &dataSource.InputTaskDescription,
+				DataSource: dataSource,
+				Zone:       globals.TextInputDescriptionZone,
+				TextInput:  textinput.New(),
+				StringPtr:  &dataSource.InputTaskDescription,
 			},
 			TextInputTask: &TextInputWrapper.Model{
-				Zone:      globals.TextInputTaskZone,
-				TextInput: textinput.New(),
-				StringPtr: &dataSource.InputTaskTicket,
+				DataSource: dataSource,
+				Zone:       globals.TextInputTaskZone,
+				TextInput:  textinput.New(),
+				StringPtr:  &dataSource.InputTaskTicket,
 			},
 		},
 		todaysProgress: &TodaysProgress.Model{
@@ -380,7 +381,7 @@ func main() {
 	app.nowDoing.TextInputTask.TextInput.CharLimit = 10
 	app.nowDoing.TextInputTask.TextInput.SetWidth(10)
 
-	p := tea.NewProgram(app)
+	p := tea.NewProgram(&app)
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error: %v", err)
