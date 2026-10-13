@@ -3,7 +3,6 @@ package TimeTable
 import (
 	"fmt"
 	"goLogMyTime/components/common/globals"
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/date"
@@ -49,6 +48,7 @@ func (m *Model) blur() {
 }
 
 func (m Model) View() tea.View {
+	style := m.DataSource.Style
 	dateString, timeTable := m.DataSource.GetDateAndTimeTable()
 	title := lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut)
 
@@ -66,12 +66,12 @@ func (m Model) View() tea.View {
 
 	ButtonDayBefore := tea.NewView(zone.Mark(
 		globals.PrevDateZone,
-		commonStyles.ButtonStyleNotStarted.Render("<< day before"),
+		style.GetStartStopButtonStyle(false).Render("<< day before"),
 	))
 
 	ButtonDayAfter := tea.NewView(zone.Mark(
 		globals.NextDateZone,
-		commonStyles.ButtonStyleNotStarted.Render("day after >>"),
+		style.GetStartStopButtonStyle(false).Render("day after >>"),
 	))
 
 	content := lipgloss.JoinVertical(
@@ -87,10 +87,10 @@ func (m Model) View() tea.View {
 
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		commonStyles.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
+		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
-				commonStyles.SectionTitle.Render(title),
+				style.SectionTitle.Render(title),
 				content,
 			),
 		),

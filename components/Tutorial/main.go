@@ -1,14 +1,15 @@
 package Tutorial
 
 import (
-	commonStyles "goLogMyTime/components/common/styles"
+	"goLogMyTime/domain/taskStore"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 )
 
 type Model struct {
-	Width int
+	DataSource *taskStore.TaskStore
+	Width      int
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -16,11 +17,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() tea.View {
+	style := m.DataSource.Style
+
 	return tea.NewView(
-		commonStyles.Tutorial.Width(m.Width).Render(
+		style.Tutorial.Width(m.Width).Render(
 			lipgloss.JoinHorizontal(
 				lipgloss.Right,
-				commonStyles.SectionTitle.Render(tutorialString),
+				style.SectionTitle.Render(tutorialString),
 			),
 		),
 	)
@@ -28,6 +31,7 @@ func (m Model) View() tea.View {
 
 var tutorialString = `ctrl+c = exit
 esc = unfocus input
+t/T = change color theme
 tab/shift+tab = switch between inputs
 1,2,3,4,5 = shortcuts to focus section
 j,down,tab = ↓ go down

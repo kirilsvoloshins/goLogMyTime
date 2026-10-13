@@ -2,7 +2,6 @@ package TodaysProgress
 
 import (
 	"fmt"
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"strings"
 
@@ -20,15 +19,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 }
 
 func (m Model) View() tea.View {
+	style := m.DataSource.Style
 	todaysProgressPercent := m.DataSource.GetTodaysProgreesPercent()
 	title := fmt.Sprintf("Days progress: %0.f%%", todaysProgressPercent)
 	content := "0 [" + m.getStringBar(todaysProgressPercent) + "] 8h"
 
 	return tea.NewView(
-		commonStyles.BorderedCentered.Width(m.Width).Render(
+		style.GetSectionStyle(false).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
-				commonStyles.SectionTitle.Render(title),
+				style.SectionTitle.Render(title),
 				content,
 			),
 		),

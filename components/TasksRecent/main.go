@@ -3,7 +3,6 @@ package TasksRecent
 import (
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
 	"goLogMyTime/components/common/globals"
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"strings"
 
@@ -69,8 +68,9 @@ func (m *Model) blur() {
 }
 
 func (m Model) View() tea.View {
+	var style = m.DataSource.Style
 	var title = lipgloss.Sprintf("Recent tasks [%s]", m.Shortcut)
-	var titleRendered = commonStyles.SectionTitle.Render(title)
+	var titleRendered = style.SectionTitle.Render(title)
 
 	var linesRendered []string
 	for _, taskDefinition := range m.DataSource.GetTaskDefinitionsRecent(true) {
@@ -109,7 +109,7 @@ func (m Model) View() tea.View {
 
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		commonStyles.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
+		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
 				sb.String(),

@@ -56,6 +56,13 @@ func (m *Model) Blur() {
 }
 
 func (m Model) View() tea.View {
+	styles := m.TextInput.Styles()
+	styles.Blurred.Placeholder = m.DataSource.Style.TextHighContrast
+	styles.Focused.Placeholder = m.DataSource.Style.TextHighContrast
+	styles.Focused.Text = m.DataSource.Style.TextHighContrast
+	styles.Blurred.Text = m.DataSource.Style.TextHighContrast
+	m.TextInput.SetStyles(styles)
+
 	return tea.NewView(zone.Mark(
 		m.Zone,
 		m.TextInput.View(),

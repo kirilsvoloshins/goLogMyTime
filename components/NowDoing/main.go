@@ -4,7 +4,6 @@ import (
 	ButtonCreateStartStop "goLogMyTime/components/ButtonCreateStartStopTask"
 	"goLogMyTime/components/TextInputWrapper"
 	"goLogMyTime/components/common/globals"
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/mouse"
@@ -116,12 +115,14 @@ func (m *Model) BlurOnlyInputs() {
 }
 
 func (m Model) View() tea.View {
+	style := m.DataSource.Style
+
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		commonStyles.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
+		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
-				commonStyles.SectionTitle.Render(m.getTitle()),
+				style.SectionTitle.Render(m.getTitle()),
 				lipgloss.JoinHorizontal(
 					lipgloss.Bottom,
 					m.TextInputDescription.View().Content,

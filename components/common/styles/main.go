@@ -1,74 +1,131 @@
-package commonStyles
+package styles
 
 import (
+	"goLogMyTime/components/common/colors"
+	"goLogMyTime/components/common/globals"
+	"image/color"
+
 	"charm.land/lipgloss/v2"
 )
 
-var buttonPadding = 1
-var ButtonWidth = 10
-var PanelWidth = 45
+type SizesType struct {
+	ButtonPadding int
+	ButtonWidth   int
+	SectionWidth  int
+}
 
-var Tutorial = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#FF00FF")).
-	Padding(0, 0).
-	Align(lipgloss.Left, lipgloss.Top)
+var Sizes = SizesType{
+	ButtonPadding: 1,
+	ButtonWidth:   10,
+	SectionWidth:  46,
+}
 
-var EmbeddedStatusBar = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("8"))
+type Style struct {
+	BgColor                       color.Color
+	TextHighContrast              lipgloss.Style
+	Tutorial                      lipgloss.Style
+	SectionTitle                  lipgloss.Style
+	GetSectionStyle               func(focused bool) lipgloss.Style
+	GetEmbeddedSectionStyle       func(focused bool) lipgloss.Style
+	GetCreateStartStopButtonStyle func(state int) lipgloss.Style
+	GetStartStopButtonStyle       func(active bool) lipgloss.Style
+	EmbeddedStatusBar             lipgloss.Style
+}
 
-var EmbeddedSectionContainerBlurred = lipgloss.NewStyle().
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("69")).
-	Border(lipgloss.RoundedBorder())
+func GetStyle(paletteIndex int) Style {
+	palette := colors.Palettes[paletteIndex]
+	colors := colors.ColorsHexToColors(palette.ColorsHex)
 
-var EmbeddedSectionContainerFocused = EmbeddedSectionContainerBlurred.
-	BorderForeground(lipgloss.Color("205"))
+	sectionTitle := lipgloss.NewStyle().
+		Foreground(colors.TitleColor).
+		Bold(true).
+		PaddingBottom(1)
 
-var SectionContainerBlurred = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#FF00FF")).
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("69")).
-	Border(lipgloss.RoundedBorder()).
-	Padding(0, 1).
-	Align(lipgloss.Right, lipgloss.Top)
+	tutorial := lipgloss.NewStyle().
+		Foreground(colors.BaseTextColor).
+		Align(lipgloss.Left, lipgloss.Top)
 
-var SectionContainerFocused = SectionContainerBlurred.
-	BorderForeground(lipgloss.Color("205"))
+	buttonDisabled := lipgloss.NewStyle().
+		Foreground(colors.DisabledButtonTextColor).
+		Background(colors.DisabledButtonColor).
+		Padding(0, Sizes.ButtonPadding)
 
-var SectionTitle = lipgloss.NewStyle().
-	Bold(true).
-	PaddingBottom(1).
-	Foreground(lipgloss.Color("#FFFFFF"))
+	buttonInactive := lipgloss.NewStyle().
+		Foreground(colors.DisabledButtonTextColor).
+		Background(colors.DisabledButtonColor).
+		Padding(0, Sizes.ButtonPadding)
 
-var BorderedCentered = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#FF00FF")).
-	BorderStyle(lipgloss.NormalBorder()).
-	BorderForeground(lipgloss.Color("69")).
-	Border(lipgloss.RoundedBorder()).
-	Padding(0, 1).
-	Align(lipgloss.Right, lipgloss.Right)
+	buttonActive := lipgloss.NewStyle().
+		Foreground(colors.DisabledButtonTextColor).
+		Padding(0, Sizes.ButtonPadding).
+		Background(colors.FocusedBorderColor).
+		Bold(true)
 
-var ButtonStyleDisabled = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("255")).
-	Background(lipgloss.Color("62")).
-	Padding(0, buttonPadding)
+	colorHighContrast := lipgloss.Color("#FFF")
 
-var ButtonStyleNotStarted = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("255")).
-	Background(lipgloss.Color("62")).
-	Padding(0, buttonPadding)
-
-var ButtonStyleStarted = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("255")).
-	Background(lipgloss.Color("62")).
-	Padding(0, buttonPadding).
-	Background(lipgloss.Color("205")).
-	Bold(true)
-
-func GetSectionStyle(isFocused bool) lipgloss.Style {
-	if isFocused {
-		return SectionContainerFocused
+	if palette.Mode == "light" {
+		colorHighContrast = lipgloss.Color("#000")
 	}
 
-	return SectionContainerBlurred
+	textHighContrast := lipgloss.NewStyle().Foreground(colorHighContrast)
+
+	return Style{
+		BgColor:          colors.BgColor,
+		TextHighContrast: textHighContrast,
+		Tutorial:         tutorial,
+		SectionTitle:     sectionTitle,
+		GetSectionStyle: func(focused bool) lipgloss.Style {
+			blurred := focused
+
+			sectionContainerBlurred := lipgloss.NewStyle().
+				Foreground(colors.BaseTextColor).
+				BorderForeground(colors.BlurredBorderColor).
+				Border(lipgloss.RoundedBorder()).
+				Padding(0, 1).
+				Align(lipgloss.Right, lipgloss.Top)
+
+			if blurred {
+				return sectionContainerBlurred
+			}
+
+			return sectionContainerBlurred.
+				BorderForeground(colors.FocusedBorderColor)
+		},
+		GetCreateStartStopButtonStyle: func(state int) lipgloss.Style {
+			buttonStyle := buttonDisabled
+
+			if state == globals.TASK_INPUT_EMPTY {
+				buttonStyle = buttonInactive
+			}
+
+			if state == globals.TASK_INPUT_VALID_ACTIVE {
+				buttonStyle = buttonActive
+			}
+
+			return buttonStyle.Width(Sizes.ButtonWidth)
+		},
+		GetStartStopButtonStyle: func(active bool) lipgloss.Style {
+			if active {
+				return buttonActive
+			}
+
+			return buttonInactive
+		},
+		GetEmbeddedSectionStyle: func(focused bool) lipgloss.Style {
+			embeddedSectionContainer := lipgloss.NewStyle().
+				BorderForeground(colors.BlurredBorderColor).
+				Border(lipgloss.RoundedBorder())
+
+			if focused {
+				embeddedSectionContainer = embeddedSectionContainer.
+					BorderForeground(colors.FocusedBorderColor)
+			}
+
+			return embeddedSectionContainer.
+				BorderForeground(colors.FocusedBorderColor).
+				Padding(0, 0, 0, 2).
+				UnsetAlign()
+		},
+		EmbeddedStatusBar: lipgloss.NewStyle().Foreground(colors.FadedStatusColor),
+	}
 }

@@ -8,18 +8,19 @@ import (
 	ButtonCreateStartStop "goLogMyTime/components/ButtonCreateStartStopTask"
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
 	"goLogMyTime/components/EmbeddedMarkdown"
-	NowDoing "goLogMyTime/components/NowDoing"
+	"goLogMyTime/components/NowDoing"
 	"goLogMyTime/components/TasksFavorite"
 	"goLogMyTime/components/TasksRecent"
 	"goLogMyTime/components/TextInputWrapper"
 	"goLogMyTime/components/TimeTable"
-	TodaysProgress "goLogMyTime/components/TodaysProgress"
+	"goLogMyTime/components/TodaysProgress"
 	"goLogMyTime/components/Tutorial"
+	"goLogMyTime/components/common/colors"
 	"goLogMyTime/components/common/globals"
+	"goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/domain/types"
-	file "goLogMyTime/utils/file"
-	"goLogMyTime/utils/layout"
+	"goLogMyTime/utils/file"
 	"goLogMyTime/utils/mouse"
 
 	"charm.land/bubbles/v2/textinput"
@@ -84,14 +85,14 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, tickToSync())
 
 	case tea.WindowSizeMsg:
-		sectionWidth := layout.GetSectionWidth(msg.Width)
+		sectionWidth := styles.Sizes.SectionWidth
 		m.nowDoing.Width = sectionWidth
 		m.tasksFavorite.Width = sectionWidth
 		m.tasksRecent.Width = sectionWidth
 		m.tutorial.Width = sectionWidth
 		m.todaysProgress.Width = sectionWidth
 		m.timetable.Width = sectionWidth
-		m.embeddedMarkdown.Width = layout.GetEditorWidth(msg.Width)
+		m.embeddedMarkdown.Width = msg.Width - sectionWidth
 
 	case tea.MouseClickMsg:
 		switch true {
@@ -119,8 +120,23 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 
+		case "t", "T":
+			if m.AreAllTextInputsBlurred() {
+				step := 1
+
+				if msg.String() == "T" {
+					step = -1
+				}
+
+				themeIndexNext := m.dataSource.ThemeIndex + step
+				if themeIndexNext >= 0 && themeIndexNext < len(colors.Palettes) {
+					m.dataSource.ThemeIndex = themeIndexNext
+					m.dataSource.Style = styles.GetStyle(m.dataSource.ThemeIndex)
+				}
+			}
+
 		case "1", "2", "3", "4", "5":
-			if m.AreTextInputsBlurred() {
+			if m.AreAllTextInputsBlurred() {
 				return m, globals.FocusSection(msg.String())
 			}
 
@@ -142,7 +158,7 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch true {
 
 			case m.nowDoing.IsFocused:
-				if isDown && m.AreTextInputsBlurred() {
+				if isDown && m.AreAllTextInputsBlurred() {
 					cmds = append(cmds, globals.FocusSection(m.tasksRecent.Shortcut))
 					return m, tea.Batch(cmds...)
 				}
@@ -271,6 +287,10 @@ func (m BaseModel) View() tea.View {
 	view.AltScreen = true
 	view.MouseMode = tea.MouseModeCellMotion
 
+	if m.dataSource != nil {
+		view.BackgroundColor = m.dataSource.Style.BgColor
+	}
+
 	view.SetContent(
 		zone.Scan(
 			lipgloss.JoinHorizontal(
@@ -292,7 +312,7 @@ func (m BaseModel) View() tea.View {
 	return view
 }
 
-func (m BaseModel) AreTextInputsBlurred() bool {
+func (m BaseModel) AreAllTextInputsBlurred() bool {
 	return !m.nowDoing.TextInputDescription.TextInput.Focused() &&
 		!m.nowDoing.TextInputTask.TextInput.Focused() &&
 		!m.embeddedMarkdown.Textarea.Focused()
@@ -318,7 +338,9 @@ func main() {
 
 	app := BaseModel{
 		dataSource: dataSource,
-		tutorial:   &Tutorial.Model{},
+		tutorial: &Tutorial.Model{
+			DataSource: dataSource,
+		},
 		tasksRecent: &TasksRecent.Model{
 			DataSource: dataSource,
 			IsFocused:  false,
@@ -369,13 +391,13 @@ func main() {
 		embeddedMarkdown: &initModel,
 	}
 
-	app.nowDoing.TextInputDescription.TextInput.Placeholder = "uwa"
+	app.nowDoing.TextInputDescription.TextInput.Placeholder = "wewewe"
 	app.nowDoing.TextInputDescription.TextInput.Prompt = "info: "
 	app.nowDoing.TextInputDescription.TextInput.SetVirtualCursor(true)
 	app.nowDoing.TextInputDescription.TextInput.CharLimit = 10
 	app.nowDoing.TextInputDescription.TextInput.SetWidth(10)
 
-	app.nowDoing.TextInputTask.TextInput.Placeholder = "bep"
+	app.nowDoing.TextInputTask.TextInput.Placeholder = "uwawa"
 	app.nowDoing.TextInputTask.TextInput.Prompt = "task: "
 	app.nowDoing.TextInputTask.TextInput.SetVirtualCursor(true)
 	app.nowDoing.TextInputTask.TextInput.CharLimit = 10

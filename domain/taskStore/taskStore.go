@@ -2,6 +2,7 @@ package taskStore
 
 import (
 	"goLogMyTime/components/common/globals"
+	"goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/conversions"
@@ -22,6 +23,8 @@ type TaskStore struct {
 	TasksRecentCursor            int
 	TasksFavoriteCursor          int
 	TimeTableDaysOffsetFromToday int
+	ThemeIndex                   int
+	Style                        styles.Style
 }
 
 func New() *TaskStore {
@@ -39,6 +42,7 @@ func (s *TaskStore) Sync() {
 		s.TasksStopAtDate(s.TodaysDateString)
 		s.TodaysDateString = todaysDateString
 	}
+	s.Style = styles.GetStyle(s.ThemeIndex)
 }
 
 func (s *TaskStore) IsInputTaskExisting() bool {

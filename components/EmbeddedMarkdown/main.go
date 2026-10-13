@@ -2,7 +2,6 @@ package EmbeddedMarkdown
 
 import (
 	"goLogMyTime/components/common/globals"
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"os"
 
@@ -17,13 +16,14 @@ type saveFileMsg struct {
 }
 
 type Model struct {
-	Zone      string
-	Shortcut  string
-	IsFocused bool
-	Filepath  string
-	Textarea  textarea.Model
-	status    string
-	Width     int
+	DataSource *taskStore.TaskStore
+	Zone       string
+	Shortcut   string
+	IsFocused  bool
+	Filepath   string
+	Textarea   *textarea.Model
+	status     string
+	Width      int
 }
 
 func saveFileCmd(path string, content string) tea.Cmd {
@@ -44,17 +44,13 @@ func InitialModel(filepath string, dataSource *taskStore.TaskStore) Model {
 	ta.ShowLineNumbers = true
 	ta.Prompt = ""
 
-	styles := ta.Styles()
-	styles.Focused.CursorLine = lipgloss.NewStyle()
-	styles.Focused.Text = lipgloss.NewStyle()
-	ta.SetStyles(styles)
-
 	return Model{
-		Shortcut: globals.EmbeddedFileSection.Shortcut,
-		Zone:     globals.EmbeddedFileSection.Zone,
-		Filepath: filepath,
-		Textarea: ta,
-		status:   "Loaded: " + filepath,
+		DataSource: dataSource,
+		Shortcut:   globals.EmbeddedFileSection.Shortcut,
+		Zone:       globals.EmbeddedFileSection.Zone,
+		Filepath:   filepath,
+		Textarea:   &ta,
+		status:     "Loaded: " + filepath,
 	}
 }
 
@@ -98,7 +94,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	var taCmd tea.Cmd
-	m.Textarea, taCmd = m.Textarea.Update(msg)
+	ta, taCmd := m.Textarea.Update(msg)
+	m.Textarea = &ta
 	cmds = append(cmds, taCmd)
 
 	return m, tea.Batch(cmds...)
@@ -114,31 +111,32 @@ func (m *Model) blur() {
 	m.Textarea.Blur()
 }
 
-func (m Model) View() tea.View {
+func (m *Model) View() tea.View {
 	title := lipgloss.Sprintf("[%s] Notes", m.Shortcut)
+	style := m.DataSource.Style
+	styleSection := style.GetEmbeddedSectionStyle(m.IsFocused)
+
+	styles := m.Textarea.Styles()
+	styles.Focused.CursorLine = m.DataSource.Style.TextHighContrast
+	styles.Focused.Text = m.DataSource.Style.TextHighContrast
+	styles.Blurred.CursorLine = m.DataSource.Style.TextHighContrast
+	styles.Blurred.Text = m.DataSource.Style.TextHighContrast
+	m.Textarea.SetStyles(styles)
 
 	return tea.NewView(zone.Mark(
 		m.Zone,
-		m.getStyle().Padding(0, 0, 0, 2).Width(m.Width).UnsetAlign().Render(
+		styleSection.Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,
 				lipgloss.JoinHorizontal(
 					lipgloss.Top,
-					commonStyles.SectionTitle.Render(title),
+					style.SectionTitle.Render(title),
 					" ",
-					commonStyles.EmbeddedStatusBar.Render(m.status),
+					style.EmbeddedStatusBar.Render(m.status),
 					"\n",
 				),
 				m.Textarea.View(),
 			),
 		),
 	))
-}
-
-func (m *Model) getStyle() lipgloss.Style {
-	if m.IsFocused {
-		return commonStyles.EmbeddedSectionContainerFocused
-	}
-
-	return commonStyles.EmbeddedSectionContainerBlurred
 }

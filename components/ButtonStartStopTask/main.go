@@ -1,14 +1,12 @@
 package ButtonStartStop
 
 import (
-	commonStyles "goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/mouse"
 
 	tea "charm.land/bubbletea/v2"
-	"charm.land/lipgloss/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
@@ -32,11 +30,13 @@ func (m Model) Update(msg tea.Msg) tea.Cmd {
 }
 
 func (m Model) View() tea.View {
-	button := m.getButton()
+	active := m.DataSource.IsTaskStarted(m.TaskDefinition)
+	buttonLabel := m.getButtonLabel(active)
+	buttonStyle := m.DataSource.Style.GetStartStopButtonStyle(active)
 
 	return tea.NewView(zone.Mark(
 		m.getButtonId(),
-		button.style.Render(button.label),
+		buttonStyle.Render(buttonLabel),
 	))
 }
 
@@ -44,21 +44,10 @@ func (m Model) getButtonId() string {
 	return m.IdPrefix + m.TaskDefinition.Ticket
 }
 
-func (m Model) getButton() Button {
-	if m.DataSource.IsTaskStarted(m.TaskDefinition) {
-		return Button{
-			label: "stop",
-			style: commonStyles.ButtonStyleStarted,
-		}
+func (m Model) getButtonLabel(active bool) string {
+	if active {
+		return "stop"
 	}
 
-	return Button{
-		label: "start",
-		style: commonStyles.ButtonStyleNotStarted,
-	}
-}
-
-type Button struct {
-	label string
-	style lipgloss.Style
+	return "start"
 }
