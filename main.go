@@ -96,23 +96,19 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.embeddedMarkdown.Width = msg.Width - sectionWidth
 
 	case tea.MouseClickMsg:
-		switch true {
 
-		case mouse.IsLeftClickInBoundsOf(m.nowDoing.Zone, msg):
+		if mouse.IsLeftClickInBoundsOf(m.nowDoing.Zone, msg) {
 			cmds = append(cmds, globals.FocusSection(m.nowDoing.Shortcut))
-
-		case mouse.IsLeftClickInBoundsOf(m.tasksFavorite.Zone, msg):
+		} else if mouse.IsLeftClickInBoundsOf(m.tasksFavorite.Zone, msg) {
 			cmds = append(cmds, globals.FocusSection(m.tasksFavorite.Shortcut))
-
-		case mouse.IsLeftClickInBoundsOf(m.tasksRecent.Zone, msg):
+		} else if mouse.IsLeftClickInBoundsOf(m.tasksRecent.Zone, msg) {
 			cmds = append(cmds, globals.FocusSection(m.tasksRecent.Shortcut))
-
-		case mouse.IsLeftClickInBoundsOf(m.timetable.Zone, msg):
+		} else if mouse.IsLeftClickInBoundsOf(m.timetable.Zone, msg) {
 			cmds = append(cmds, globals.FocusSection(m.timetable.Shortcut))
-
-		case mouse.IsLeftClickInBoundsOf(m.embeddedMarkdown.Zone, msg):
+		} else if mouse.IsLeftClickInBoundsOf(m.embeddedMarkdown.Zone, msg) {
 			cmds = append(cmds, globals.FocusSection(m.embeddedMarkdown.Shortcut))
-
+		} else {
+			cmds = append(cmds, globals.FocusSection("-1"))
 		}
 
 	case tea.KeyPressMsg:
