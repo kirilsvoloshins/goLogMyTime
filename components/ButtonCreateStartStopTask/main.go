@@ -58,7 +58,7 @@ type Button struct {
 type ButtonLabelMap map[int]string
 
 var buttonMap = ButtonLabelMap{
-	globals.TASK_INPUT_EMPTY:          "<- input",
+	globals.TASK_INPUT_EMPTY:          "< input",
 	globals.TASK_INPUT_VALID_NEW:      "create",
 	globals.TASK_INPUT_VALID_INACTIVE: "start",
 	globals.TASK_INPUT_VALID_ACTIVE:   "stop",
