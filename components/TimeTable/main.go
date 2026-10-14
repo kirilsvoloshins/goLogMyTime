@@ -6,6 +6,7 @@ import (
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/date"
+	"goLogMyTime/utils/mouse"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -22,6 +23,7 @@ type Model struct {
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+
 	switch msg := msg.(type) {
 
 	case globals.FocusSectionMsg:
@@ -32,6 +34,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case globals.BlurSectionMsg:
 		if string(msg) == m.Shortcut {
 			m.blur()
+		}
+
+	case tea.MouseClickMsg:
+		if m.IsFocused {
+			if mouse.IsLeftClickInBoundsOf(globals.NextDateZone, msg) {
+				m.DataSource.TimeTableDaysOffsetFromToday++
+				return m, nil
+			}
+
+			if mouse.IsLeftClickInBoundsOf(globals.PrevDateZone, msg) {
+				m.DataSource.TimeTableDaysOffsetFromToday--
+				return m, nil
+			}
 		}
 
 	}
