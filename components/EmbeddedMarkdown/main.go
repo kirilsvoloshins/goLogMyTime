@@ -3,6 +3,7 @@ package EmbeddedMarkdown
 import (
 	"goLogMyTime/components/common/globals"
 	"goLogMyTime/domain/taskStore"
+	"goLogMyTime/utils/file"
 	"os"
 
 	"charm.land/bubbles/v2/textarea"
@@ -28,7 +29,7 @@ type Model struct {
 
 func saveFileCmd(path string, content string) tea.Cmd {
 	return func() tea.Msg {
-		err := os.WriteFile(path, []byte(content), 0644)
+		err := os.WriteFile(path, []byte(content), file.READ_WRITE_PERM)
 		return saveFileMsg{err: err}
 	}
 }
@@ -73,18 +74,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.blur()
 		}
 
-	case tea.KeyPressMsg:
-		if m.Textarea.Focused() {
-			switch msg.String() {
-			case "esc":
-				m.blur()
-				return m, nil
-
-			default:
-				cmds = append(cmds, saveFileCmd(m.Filepath, m.Textarea.Value()))
-			}
-		}
-
 	case saveFileMsg:
 		if msg.err != nil {
 			m.status = "Error while saving: " + msg.err.Error()
@@ -97,6 +86,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	ta, taCmd := m.Textarea.Update(msg)
 	m.Textarea = &ta
 	cmds = append(cmds, taCmd)
+
+	if key, ok := msg.(tea.KeyMsg); ok && m.Textarea.Focused() {
+		if key.String() == "esc" {
+			m.blur()
+		} else {
+			cmds = append(cmds, saveFileCmd(m.Filepath, m.Textarea.Value()))
+		}
+	}
 
 	return m, tea.Batch(cmds...)
 }

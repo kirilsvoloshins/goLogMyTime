@@ -1,11 +1,13 @@
 package assert
 
 import (
-	"log"
+	"fmt"
+	"os"
 )
 
 func Assert(condition bool, message string) {
 	if !condition {
-		log.Fatal(message)
+		fmt.Printf("Error: %v", message)
+		os.Exit(2)
 	}
 }

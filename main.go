@@ -20,6 +20,7 @@ import (
 	"goLogMyTime/components/common/styles"
 	"goLogMyTime/domain/taskStore"
 	"goLogMyTime/domain/types"
+	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/file"
 	"goLogMyTime/utils/mouse"
 
@@ -318,23 +319,20 @@ func (m BaseModel) AreAllTextInputsBlurred() bool {
 		!m.embeddedMarkdown.Textarea.Focused()
 }
 
-func (m BaseModel) getTextInputValues() (string, string) {
-	taskActivePtr := m.dataSource.GetTaskRecordActive()
-
-	if taskActivePtr == nil {
-		return "", ""
-	}
-
-	return taskActivePtr.Description, taskActivePtr.Ticket
-}
-
 func main() {
-	zone.NewGlobal()
-	file.CreateFilesIfMissing()
+	_, err := os.ReadDir(file.DATA_DIR)
+	isDirPresent := err == nil
+	assert.Assert(isDirPresent, "you have to manually create a './data' directory inside the project")
+
+	areFilesPresent := file.CreateFilesIfMissing()
+	assert.Assert(areFilesPresent, "failed to create './data/' files")
+
 	dataSource := taskStore.New()
 	dataSource.Sync()
 
-	initModel := EmbeddedMarkdown.InitialModel(file.PathMarkdown, dataSource)
+	zone.NewGlobal()
+
+	embeddedMarkdownModel := EmbeddedMarkdown.InitialModel(file.PathMarkdown, dataSource)
 
 	app := BaseModel{
 		dataSource: dataSource,
@@ -388,7 +386,7 @@ func main() {
 			Shortcut:   globals.TimeTableSection.Shortcut,
 			Zone:       globals.TimeTableSection.Zone,
 		},
-		embeddedMarkdown: &initModel,
+		embeddedMarkdown: &embeddedMarkdownModel,
 	}
 
 	app.nowDoing.TextInputDescription.TextInput.Placeholder = "wewewe"

@@ -6,6 +6,18 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+type ColorsHex struct {
+	Background string
+	Text       string
+	Border     string
+	Accent     string
+	Button     string
+	ButtonText string
+	Stop       string
+	Muted      string
+	Focus      string
+}
+
 type Colors struct {
 	BgColor                 color.Color
 	TitleColor              color.Color
@@ -28,18 +40,6 @@ func ColorsHexToColors(colorsHex ColorsHex) Colors {
 		DisabledButtonColor:     lipgloss.Color(colorsHex.Button),
 		DisabledButtonTextColor: lipgloss.Color(colorsHex.ButtonText),
 	}
-}
-
-type ColorsHex struct {
-	Background string
-	Text       string
-	Border     string
-	Accent     string
-	Button     string
-	ButtonText string
-	Stop       string
-	Muted      string
-	Focus      string
 }
 
 type Palette struct {

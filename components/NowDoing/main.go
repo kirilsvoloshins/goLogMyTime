@@ -5,9 +5,7 @@ import (
 	"goLogMyTime/components/TextInputWrapper"
 	"goLogMyTime/components/common/globals"
 	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/mouse"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -146,19 +144,3 @@ func (m Model) getTitle() string {
 
 var DESCRIPTION_MAX_LENGTH = 6 // "review"
 var DESCRIPTION_MAX_INDEX = DESCRIPTION_MAX_LENGTH - 1
-
-func getStringNowDoing(taskRecordActive *types.TaskRecord) string {
-	var sb strings.Builder
-	if len(taskRecordActive.Description) > 0 {
-		sb.WriteString("\"")
-		if len(taskRecordActive.Description) > DESCRIPTION_MAX_LENGTH {
-			runes := []rune(taskRecordActive.Description)
-			sb.WriteString(string(runes[0:DESCRIPTION_MAX_INDEX]) + "...")
-		} else {
-			sb.WriteString(taskRecordActive.Description)
-		}
-		sb.WriteString("\" ")
-	}
-
-	return sb.String() + taskRecordActive.Ticket + " "
-}

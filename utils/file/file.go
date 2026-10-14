@@ -2,33 +2,45 @@ package file
 
 import (
 	"encoding/json"
+	"errors"
 	"goLogMyTime/domain/types"
 	"goLogMyTime/utils/assert"
 	"goLogMyTime/utils/date"
+	"io/fs"
 	"os"
 )
 
-var PathMarkdown = "./data/main.md"
-var pathTaskDefinitions = "data/taskDefinitions.json"
-var pathTaskRecords = "data/taskRecords.json"
-var READ_WRITE_PERM os.FileMode = 0644
+const DATA_DIR = "./data/"
+const PathMarkdown = "./data/main.md"
+const pathTaskDefinitions = "data/taskDefinitions.json"
+const pathTaskRecords = "data/taskRecords.json"
+const READ_WRITE_PERM os.FileMode = 0644
 
-func isFileMissing(path string) bool {
-	_, err := os.ReadFile(path)
-	return err != nil
+func IsDataDirMissing() bool {
+	_, err := os.ReadDir(DATA_DIR)
+	return errors.Is(err, fs.ErrNotExist)
 }
 
-func createFileIfMissing(path string) {
-	if isFileMissing(path) {
+func createFileIfMissing(path string) bool {
+	_, err := os.ReadFile(path)
+	if err == nil {
+		return true
+	}
+
+	if errors.Is(err, fs.ErrNotExist) {
 		content := []byte("{}")
 		err := os.WriteFile(path, content, READ_WRITE_PERM)
 		assert.Assert(err == nil, "failed to create a file")
+		return true
 	}
+
+	return false
 }
 
-func CreateFilesIfMissing() {
-	createFileIfMissing(pathTaskDefinitions)
-	createFileIfMissing(pathTaskRecords)
+func CreateFilesIfMissing() bool {
+	ok1 := createFileIfMissing(pathTaskDefinitions)
+	ok2 := createFileIfMissing(pathTaskRecords)
+	return ok1 && ok2
 }
 
 func ReadTaskDefinitionMap() types.TaskDefinitionMap {

@@ -349,7 +349,7 @@ func (s *TaskStore) GetTaskInputState() int {
 	return globals.TASK_INPUT_EMPTY
 }
 
-var WORK_DAY_IN_MINUTES = 8 * 60
+const WORK_DAY_IN_MINUTES = 8 * 60
 
 func (s *TaskStore) GetTodaysProgreesPercent() float64 {
 	var res float64

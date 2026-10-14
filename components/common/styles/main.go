@@ -75,8 +75,6 @@ func GetStyle(paletteIndex int) Style {
 		Tutorial:         tutorial,
 		SectionTitle:     sectionTitle,
 		GetSectionStyle: func(focused bool) lipgloss.Style {
-			blurred := focused
-
 			sectionContainerBlurred := lipgloss.NewStyle().
 				Foreground(colors.BaseTextColor).
 				BorderForeground(colors.BlurredBorderColor).
@@ -84,12 +82,12 @@ func GetStyle(paletteIndex int) Style {
 				Padding(0, 1).
 				Align(lipgloss.Right, lipgloss.Top)
 
-			if blurred {
-				return sectionContainerBlurred
+			if focused {
+				return sectionContainerBlurred.
+					BorderForeground(colors.FocusedBorderColor)
 			}
 
-			return sectionContainerBlurred.
-				BorderForeground(colors.FocusedBorderColor)
+			return sectionContainerBlurred
 		},
 		GetCreateStartStopButtonStyle: func(state int) lipgloss.Style {
 			buttonStyle := buttonDisabled
@@ -113,8 +111,8 @@ func GetStyle(paletteIndex int) Style {
 		},
 		GetEmbeddedSectionStyle: func(focused bool) lipgloss.Style {
 			embeddedSectionContainer := lipgloss.NewStyle().
-				BorderForeground(colors.BlurredBorderColor).
-				Border(lipgloss.RoundedBorder())
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(colors.BlurredBorderColor)
 
 			if focused {
 				embeddedSectionContainer = embeddedSectionContainer.
@@ -122,7 +120,6 @@ func GetStyle(paletteIndex int) Style {
 			}
 
 			return embeddedSectionContainer.
-				BorderForeground(colors.FocusedBorderColor).
 				Padding(0, 0, 0, 2).
 				UnsetAlign()
 		},
