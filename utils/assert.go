@@ -1,4 +1,4 @@
-package assert
+package utils
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 func Assert(condition bool, message string) {
 	if !condition {
-		fmt.Printf("Error: %v", message)
+		fmt.Printf("Assertion error: %v \n", message)
 		os.Exit(2)
 	}
 }

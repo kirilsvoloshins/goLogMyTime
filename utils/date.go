@@ -1,8 +1,12 @@
-package date
+package utils
 
 import (
 	"time"
 )
+
+func TodaysString() string {
+	return DateToString(time.Now())
+}
 
 func DateToString(date1 time.Time) string {
 	return date1.Format("2006-01-02")

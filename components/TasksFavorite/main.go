@@ -2,8 +2,9 @@ package TasksFavorite
 
 import (
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
-	"goLogMyTime/components/common/globals"
-	"goLogMyTime/domain/taskStore"
+	"goLogMyTime/store"
+	"goLogMyTime/types"
+	"goLogMyTime/utils"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -14,19 +15,19 @@ import (
 var idPrefix = "F_"
 
 type Model struct {
-	DataSource          *taskStore.TaskStore
-	IsFocused           bool
-	Shortcut            string
-	Zone                string
-	ButtonsStartStopMap map[string]ButtonStartStop.Model
+	Store               *store.RootStore
+	Shortcut            types.SectionShortcut
+	Zone                types.Zone
 	Width               int
+	IsFocused           bool
+	ButtonsStartStopMap map[string]ButtonStartStop.Model
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	taskDefinitionsFavorite := m.DataSource.GetTaskDefinitionsFavorite()
+	taskDefinitionsFavorite := m.Store.Task.TaskDefinitionsFavorite
 
 	for ticket, buttonStartStop := range m.ButtonsStartStopMap {
 		var actual = false
@@ -46,42 +47,44 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 
-	case globals.FocusSectionMsg:
-		if string(msg) == m.Shortcut {
-			m.focus()
+	case types.FocusZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = true
 		}
 
-	case globals.BlurSectionMsg:
-		if string(msg) == m.Shortcut {
-			m.blur()
+	case types.BlurZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = false
 		}
 
+	}
+
+	keyPressMsg, isKeyPress := msg.(tea.KeyPressMsg)
+	if isKeyPress && m.IsFocused {
+		isToggleKey := utils.IsEnterKeyMsg(keyPressMsg) || utils.IsSpaceKeyMsg(keyPressMsg)
+
+		if isToggleKey && len(m.Store.Task.TaskDefinitionsFavorite) > 0 {
+			taskDef := m.Store.Task.TaskDefinitionsFavorite[m.Store.Ui.TasksFavoriteCursor]
+			m.Store.Task.TaskToggle(taskDef.Ticket)
+		}
 	}
 
 	return m, tea.Batch(cmds...)
 }
 
-func (m *Model) focus() {
-	m.IsFocused = true
-}
-
-func (m *Model) blur() {
-	m.IsFocused = false
-}
-
-func (m Model) View() tea.View {
-	var style = m.DataSource.Style
+func (m *Model) View() tea.View {
+	var style = m.Store.Ui.Style
 	var title = lipgloss.Sprintf("Favorite tasks [%s]", m.Shortcut)
 	var titleRendered = style.SectionTitle.Render(title)
 
 	var linesRendered []string
-	for _, taskDefinition := range m.DataSource.GetTaskDefinitionsFavorite() {
+	for _, taskDefinition := range m.Store.Task.TaskDefinitionsFavorite {
 		_, isButtonInMap := m.ButtonsStartStopMap[taskDefinition.Ticket]
 		if !isButtonInMap {
 			m.ButtonsStartStopMap[taskDefinition.Ticket] = ButtonStartStop.Model{
-				DataSource:     m.DataSource,
-				TaskDefinition: &taskDefinition,
-				IdPrefix:       idPrefix,
+				Store:    m.Store,
+				Ticket:   taskDefinition.Ticket,
+				IdPrefix: idPrefix,
 			}
 		}
 
@@ -97,8 +100,8 @@ func (m Model) View() tea.View {
 	sb.WriteString(titleRendered)
 
 	cursor := 0
-	if m.DataSource.TasksFavoriteCursor < len(linesRendered) {
-		cursor = m.DataSource.TasksFavoriteCursor
+	if m.Store.Ui.TasksFavoriteCursor < len(linesRendered) {
+		cursor = m.Store.Ui.TasksFavoriteCursor
 	}
 
 	for index, line := range linesRendered {
@@ -110,7 +113,7 @@ func (m Model) View() tea.View {
 	}
 
 	return tea.NewView(zone.Mark(
-		m.Zone,
+		string(m.Zone),
 		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,

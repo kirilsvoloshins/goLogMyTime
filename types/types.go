@@ -28,3 +28,21 @@ type TimeEntry struct {
 	Minutes int
 }
 type TimeTable []TimeEntry
+
+type Settings struct {
+	ThemeIndex int
+}
+
+type Ticket = string
+
+type SectionShortcut string
+type Zone string
+
+type FocusZoneMsg string
+type BlurZoneMsg string
+
+type Direction string
+
+type ButtonState string
+
+type TaskStateChange string

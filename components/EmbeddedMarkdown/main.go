@@ -1,9 +1,10 @@
 package EmbeddedMarkdown
 
 import (
-	"goLogMyTime/components/common/globals"
-	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/utils/file"
+	"goLogMyTime/common/globals"
+	"goLogMyTime/store"
+	"goLogMyTime/types"
+	"goLogMyTime/utils"
 	"os"
 
 	"charm.land/bubbles/v2/textarea"
@@ -17,24 +18,24 @@ type saveFileMsg struct {
 }
 
 type Model struct {
-	DataSource *taskStore.TaskStore
-	Zone       string
-	Shortcut   string
-	IsFocused  bool
-	Filepath   string
-	Textarea   *textarea.Model
-	status     string
-	Width      int
+	Store     *store.RootStore
+	Zone      types.Zone
+	Shortcut  types.SectionShortcut
+	IsFocused bool
+	Filepath  string
+	Textarea  *textarea.Model
+	status    string
+	Width     int
 }
 
 func saveFileCmd(path string, content string) tea.Cmd {
 	return func() tea.Msg {
-		err := os.WriteFile(path, []byte(content), file.READ_WRITE_PERM)
+		err := os.WriteFile(path, []byte(content), utils.READ_WRITE_PERM)
 		return saveFileMsg{err: err}
 	}
 }
 
-func InitialModel(filepath string, dataSource *taskStore.TaskStore) Model {
+func InitialModel(filepath string, store *store.RootStore) Model {
 	content, err := os.ReadFile(filepath)
 	if err != nil && !os.IsNotExist(err) {
 		panic(err)
@@ -46,16 +47,16 @@ func InitialModel(filepath string, dataSource *taskStore.TaskStore) Model {
 	ta.Prompt = ""
 
 	return Model{
-		DataSource: dataSource,
-		Shortcut:   globals.EmbeddedFileSection.Shortcut,
-		Zone:       globals.EmbeddedFileSection.Zone,
-		Filepath:   filepath,
-		Textarea:   &ta,
-		status:     "Loaded: " + filepath,
+		Store:    store,
+		Shortcut: globals.InteractiveSections.EmbeddedFile.Shortcut,
+		Zone:     globals.InteractiveSections.EmbeddedFile.Zone,
+		Filepath: filepath,
+		Textarea: &ta,
+		status:   "Loaded: " + filepath,
 	}
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -64,14 +65,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.Textarea.SetHeight(msg.Height - 4)
 		m.Textarea.SetWidth(m.Width - 2)
 
-	case globals.FocusSectionMsg:
-		if string(msg) == m.Shortcut {
-			cmds = append(cmds, m.focus())
+	case types.FocusZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = true
+			cmds = append(cmds, m.Textarea.Focus())
 		}
 
-	case globals.BlurSectionMsg:
-		if string(msg) == m.Shortcut {
-			m.blur()
+	case types.BlurZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = false
+			m.Textarea.Blur()
 		}
 
 	case saveFileMsg:
@@ -82,14 +85,13 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	}
 
-	var taCmd tea.Cmd
 	ta, taCmd := m.Textarea.Update(msg)
 	m.Textarea = &ta
 	cmds = append(cmds, taCmd)
 
 	if key, ok := msg.(tea.KeyMsg); ok && m.Textarea.Focused() {
 		if key.String() == "esc" {
-			m.blur()
+			cmds = append(cmds, globals.FocusZone(globals.InteractiveSections.NowDoing.Zone))
 		} else {
 			cmds = append(cmds, saveFileCmd(m.Filepath, m.Textarea.Value()))
 		}
@@ -98,30 +100,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m *Model) focus() tea.Cmd {
-	m.IsFocused = true
-	return m.Textarea.Focus()
-}
-
-func (m *Model) blur() {
-	m.IsFocused = false
-	m.Textarea.Blur()
-}
-
 func (m *Model) View() tea.View {
 	title := lipgloss.Sprintf("[%s] Notes", m.Shortcut)
-	style := m.DataSource.Style
+	style := m.Store.Ui.Style
 	styleSection := style.GetEmbeddedSectionStyle(m.IsFocused)
 
 	styles := m.Textarea.Styles()
-	styles.Focused.CursorLine = m.DataSource.Style.TextHighContrast
-	styles.Focused.Text = m.DataSource.Style.TextHighContrast
-	styles.Blurred.CursorLine = m.DataSource.Style.TextHighContrast
-	styles.Blurred.Text = m.DataSource.Style.TextHighContrast
+	styles.Focused.CursorLine = m.Store.Ui.Style.TextHighContrast
+	styles.Focused.Text = m.Store.Ui.Style.TextHighContrast
+	styles.Blurred.CursorLine = m.Store.Ui.Style.TextHighContrast
+	styles.Blurred.Text = m.Store.Ui.Style.TextHighContrast
 	m.Textarea.SetStyles(styles)
 
 	return tea.NewView(zone.Mark(
-		m.Zone,
+		string(m.Zone),
 		styleSection.Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Left,

@@ -1,47 +1,43 @@
 package ButtonStartStop
 
 import (
-	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/domain/types"
-	"goLogMyTime/utils/assert"
-	"goLogMyTime/utils/mouse"
+	"goLogMyTime/store"
+	"goLogMyTime/types"
+	"goLogMyTime/utils"
 
 	tea "charm.land/bubbletea/v2"
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
 type Model struct {
-	DataSource     *taskStore.TaskStore
-	TaskDefinition *types.TaskDefinition
-	IdPrefix       string
+	Store    *store.RootStore
+	Ticket   string
+	IdPrefix string
 }
 
 func (m Model) Update(msg tea.Msg) tea.Cmd {
-	switch msg := msg.(type) {
-	case tea.MouseClickMsg:
-		assert.Assert(m.TaskDefinition != nil, "missing task def")
+	mouseClickMsg, isMouseClick := msg.(tea.MouseClickMsg)
 
-		if mouse.IsLeftClickInBoundsOf(m.getButtonId(), msg) {
-			m.DataSource.TaskToggle(m.TaskDefinition)
-		}
+	if isMouseClick && utils.IsLeftClickInBoundsOf(m.getButtonZone(), mouseClickMsg) {
+		m.Store.Task.TaskToggle(m.Ticket)
 	}
 
 	return nil
 }
 
 func (m Model) View() tea.View {
-	active := m.DataSource.IsTaskStarted(m.TaskDefinition)
-	buttonLabel := m.getButtonLabel(active)
-	buttonStyle := m.DataSource.Style.GetStartStopButtonStyle(active)
+	isActive := m.Store.Task.IsTaskStarted(m.Ticket)
+	buttonStyle := m.Store.Ui.Style.GetStartStopButtonStyle(isActive)
+	buttonLabel := m.getButtonLabel(isActive)
 
 	return tea.NewView(zone.Mark(
-		m.getButtonId(),
+		string(m.getButtonZone()),
 		buttonStyle.Render(buttonLabel),
 	))
 }
 
-func (m Model) getButtonId() string {
-	return m.IdPrefix + m.TaskDefinition.Ticket
+func (m Model) getButtonZone() types.Zone {
+	return types.Zone(m.IdPrefix + m.Ticket)
 }
 
 func (m Model) getButtonLabel(active bool) string {

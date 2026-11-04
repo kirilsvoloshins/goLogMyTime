@@ -1,7 +1,7 @@
-package conversions
+package utils
 
 import (
-	"goLogMyTime/domain/types"
+	"goLogMyTime/types"
 	"sort"
 	"time"
 )

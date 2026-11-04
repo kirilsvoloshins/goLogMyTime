@@ -1,10 +1,9 @@
 package ButtonCreateStartStop
 
 import (
-	"goLogMyTime/components/common/globals"
-	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/utils/assert"
-	"goLogMyTime/utils/mouse"
+	"goLogMyTime/common/globals"
+	"goLogMyTime/store"
+	"goLogMyTime/utils"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -12,54 +11,48 @@ import (
 )
 
 type Model struct {
-	DataSource *taskStore.TaskStore
-	IdPrefix   string
+	Store *store.RootStore
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-	var cmds []tea.Cmd
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
+	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.MouseClickMsg:
-		if mouse.IsLeftClickInBoundsOf(globals.CreateStartStopZone, msg) {
-			taskDefinition := m.DataSource.GetInputTaskDefinition()
-
-			if taskDefinition != nil {
-				m.DataSource.TaskToggle(taskDefinition)
-				return m, tea.Batch(cmds...)
-			}
-
-			if m.DataSource.IsInputTaskValidAndNew() {
-				m.DataSource.TaskCreate()
-				return m, tea.Batch(cmds...)
+		if utils.IsLeftClickInBoundsOf(globals.ZoneCreateStartStop, msg) {
+			taskStateChange := m.Store.Task.TaskToggleIfValid(m.Store.Ui.InputTicket, m.Store.Ui.InputTitle)
+			if taskStateChange == globals.TASK_GOT_STOPPED {
+				cmd = globals.FocusZone(globals.ZoneTextInputTask)
 			}
 		}
 	}
 
-	return m, nil
+	return m, cmd
 }
 
-func (m Model) View() tea.View {
-	buttonStyle := m.DataSource.Style.GetCreateStartStopButtonStyle(m.DataSource.TaskInputState)
-	buttonLabel, ok := buttonMap[m.DataSource.TaskInputState]
-	assert.Assert(ok, "Invalid task input state")
+func (m *Model) View() tea.View {
+	buttonLabel, buttonStyle := m.GetButtonStyle()
 
 	return tea.NewView(zone.Mark(
-		globals.CreateStartStopZone,
+		globals.ZoneCreateStartStop,
 		buttonStyle.Render(buttonLabel),
 	))
 }
 
-type Button struct {
-	label string
-	style lipgloss.Style
-}
+func (m *Model) GetButtonStyle() (string, lipgloss.Style) {
+	ticket := m.Store.Ui.InputTicket
+	taskDefinition := m.Store.Task.GetTaskDefinition(ticket)
+	if taskDefinition != nil {
+		if m.Store.Task.IsTaskStarted(ticket) {
+			return "stop", m.Store.Ui.Style.ButtonActive
+		}
+		return "start", m.Store.Ui.Style.ButtonInactive
+	}
 
-type ButtonLabelMap map[int]string
+	title := m.Store.Ui.InputTitle
+	if m.Store.Task.IsTaskValidAndNew(ticket, title) {
+		return "create and start", m.Store.Ui.Style.ButtonInactive
+	}
 
-var buttonMap = ButtonLabelMap{
-	globals.TASK_INPUT_EMPTY:          "< input",
-	globals.TASK_INPUT_VALID_NEW:      "create",
-	globals.TASK_INPUT_VALID_INACTIVE: "start",
-	globals.TASK_INPUT_VALID_ACTIVE:   "stop",
+	return "input task and title", m.Store.Ui.Style.ButtonDisabled
 }

@@ -1,8 +1,7 @@
 package styles
 
 import (
-	"goLogMyTime/components/common/colors"
-	"goLogMyTime/components/common/globals"
+	"goLogMyTime/common/colors"
 	"image/color"
 
 	"charm.land/lipgloss/v2"
@@ -21,15 +20,19 @@ var Sizes = SizesType{
 }
 
 type Style struct {
-	BgColor                       color.Color
-	TextHighContrast              lipgloss.Style
-	Tutorial                      lipgloss.Style
-	SectionTitle                  lipgloss.Style
-	GetSectionStyle               func(focused bool) lipgloss.Style
-	GetEmbeddedSectionStyle       func(focused bool) lipgloss.Style
-	GetCreateStartStopButtonStyle func(state int) lipgloss.Style
-	GetStartStopButtonStyle       func(active bool) lipgloss.Style
-	EmbeddedStatusBar             lipgloss.Style
+	BgColor                 color.Color
+	TextLowContrast         lipgloss.Style
+	TextHighContrast        lipgloss.Style
+	HintsContextAware       lipgloss.Style
+	SectionTitle            lipgloss.Style
+	GetSectionStyle         func(focused bool) lipgloss.Style
+	GetEmbeddedSectionStyle func(focused bool) lipgloss.Style
+	ButtonDisabled          lipgloss.Style
+	ButtonInactive          lipgloss.Style
+	ButtonActive            lipgloss.Style
+	GetStartStopButtonStyle func(active bool) lipgloss.Style
+	GenericButtonStyle      lipgloss.Style
+	EmbeddedStatusBar       lipgloss.Style
 }
 
 func GetStyle(paletteIndex int) Style {
@@ -40,10 +43,6 @@ func GetStyle(paletteIndex int) Style {
 		Foreground(colors.TitleColor).
 		Bold(true).
 		PaddingBottom(1)
-
-	tutorial := lipgloss.NewStyle().
-		Foreground(colors.BaseTextColor).
-		Align(lipgloss.Left, lipgloss.Top)
 
 	buttonDisabled := lipgloss.NewStyle().
 		Foreground(colors.DisabledButtonTextColor).
@@ -62,18 +61,22 @@ func GetStyle(paletteIndex int) Style {
 		Bold(true)
 
 	colorHighContrast := lipgloss.Color("#FFF")
+	colorLowContrast := lipgloss.Color("#7C7C7C")
 
 	if palette.Mode == "light" {
 		colorHighContrast = lipgloss.Color("#000")
+		colorLowContrast = lipgloss.Color("#6B6B6B")
 	}
 
 	textHighContrast := lipgloss.NewStyle().Foreground(colorHighContrast)
+	textLowContrast := lipgloss.NewStyle().Foreground(colorLowContrast)
 
 	return Style{
-		BgColor:          colors.BgColor,
-		TextHighContrast: textHighContrast,
-		Tutorial:         tutorial,
-		SectionTitle:     sectionTitle,
+		BgColor:           colors.BgColor,
+		TextLowContrast:   textLowContrast,
+		TextHighContrast:  textHighContrast,
+		HintsContextAware: textHighContrast,
+		SectionTitle:      sectionTitle,
 		GetSectionStyle: func(focused bool) lipgloss.Style {
 			sectionContainerBlurred := lipgloss.NewStyle().
 				Foreground(colors.BaseTextColor).
@@ -89,19 +92,9 @@ func GetStyle(paletteIndex int) Style {
 
 			return sectionContainerBlurred
 		},
-		GetCreateStartStopButtonStyle: func(state int) lipgloss.Style {
-			buttonStyle := buttonDisabled
-
-			if state == globals.TASK_INPUT_EMPTY {
-				buttonStyle = buttonInactive
-			}
-
-			if state == globals.TASK_INPUT_VALID_ACTIVE {
-				buttonStyle = buttonActive
-			}
-
-			return buttonStyle.Width(Sizes.ButtonWidth)
-		},
+		ButtonDisabled: buttonDisabled,
+		ButtonInactive: buttonInactive,
+		ButtonActive:   buttonActive,
 		GetStartStopButtonStyle: func(active bool) lipgloss.Style {
 			if active {
 				return buttonActive
@@ -109,6 +102,7 @@ func GetStyle(paletteIndex int) Style {
 
 			return buttonInactive
 		},
+		GenericButtonStyle: buttonInactive,
 		GetEmbeddedSectionStyle: func(focused bool) lipgloss.Style {
 			embeddedSectionContainer := lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).

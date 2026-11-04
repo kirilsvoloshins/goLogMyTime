@@ -2,11 +2,10 @@ package TimeTable
 
 import (
 	"fmt"
-	"goLogMyTime/components/common/globals"
-	"goLogMyTime/domain/taskStore"
-	"goLogMyTime/utils/assert"
-	"goLogMyTime/utils/date"
-	"goLogMyTime/utils/mouse"
+	"goLogMyTime/common/globals"
+	"goLogMyTime/store"
+	"goLogMyTime/types"
+	"goLogMyTime/utils"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -15,78 +14,75 @@ import (
 )
 
 type Model struct {
-	DataSource *taskStore.TaskStore
-	IsFocused  bool
-	Shortcut   string
-	Zone       string
-	Width      int
+	Store     *store.RootStore
+	Zone      types.Zone
+	Shortcut  types.SectionShortcut
+	Width     int
+	IsFocused bool
 }
 
-func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
-
+func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	switch msg := msg.(type) {
-
-	case globals.FocusSectionMsg:
-		if string(msg) == m.Shortcut {
-			m.focus()
+	case types.FocusZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = true
 		}
-
-	case globals.BlurSectionMsg:
-		if string(msg) == m.Shortcut {
-			m.blur()
+	case types.BlurZoneMsg:
+		if types.Zone(msg) == m.Zone {
+			m.IsFocused = false
 		}
-
 	case tea.MouseClickMsg:
-		if m.IsFocused {
-			if mouse.IsLeftClickInBoundsOf(globals.NextDateZone, msg) {
-				m.DataSource.TimeTableDaysOffsetFromToday++
-				return m, nil
-			}
-
-			if mouse.IsLeftClickInBoundsOf(globals.PrevDateZone, msg) {
-				m.DataSource.TimeTableDaysOffsetFromToday--
-				return m, nil
-			}
+		if utils.IsLeftClickInBoundsOf(globals.ZoneNextDate, msg) {
+			m.Store.Ui.ChangeDaysOffset(true)
 		}
 
+		if utils.IsLeftClickInBoundsOf(globals.ZonePrevDate, msg) {
+			m.Store.Ui.ChangeDaysOffset(false)
+		}
+	case tea.KeyPressMsg:
+		if !m.IsFocused {
+			break
+		}
+
+		prev := utils.IsShiftTabKeyMsg(msg)
+		next := utils.IsTabKeyMsg(msg)
+
+		if prev || next {
+			m.Store.Ui.ChangeDaysOffset(next)
+		}
 	}
 
 	return m, nil
 }
 
-func (m *Model) focus() {
-	m.IsFocused = true
-}
-
-func (m *Model) blur() {
-	m.IsFocused = false
-}
-
-func (m Model) View() tea.View {
-	style := m.DataSource.Style
-	dateString, timeTable := m.DataSource.GetDateAndTimeTable()
+func (m *Model) View() tea.View {
+	style := m.Store.Ui.Style
+	dateString, timeTable := m.Store.Task.GetDateAndTimeTable(
+		m.Store.Ui.TodaysDate,
+		m.Store.Ui.TimeTableDaysOffsetFromToday,
+	)
 	title := lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut)
 
 	var sb strings.Builder
 
 	if timeTable != nil {
 		for _, record := range *timeTable {
-			taskDefinition, ok := m.DataSource.TaskDefinitionMap[record.Name]
-			assert.Assert(ok, "very not ok")
+			taskDefinition, ok := m.Store.Task.TaskDefinitionMap[record.Name]
+			utils.Assert(ok, "very not ok")
 
-			hours, minutes := date.MinutesToHoursMinutes(record.Minutes)
-			sb.WriteString(fmt.Sprintf("\n%s - %s - %dh %dmin", taskDefinition.Info, record.Name, hours, minutes))
+			hours, minutes := utils.MinutesToHoursMinutes(record.Minutes)
+			fmt.Fprintf(&sb, "\n%s - %s - %dh %dmin", taskDefinition.Info, record.Name, hours, minutes)
 		}
 	}
 
 	ButtonDayBefore := tea.NewView(zone.Mark(
-		globals.PrevDateZone,
-		style.GetStartStopButtonStyle(false).Render("<< day before"),
+		globals.ZonePrevDate,
+		style.GenericButtonStyle.Render("<< day before"),
 	))
 
 	ButtonDayAfter := tea.NewView(zone.Mark(
-		globals.NextDateZone,
-		style.GetStartStopButtonStyle(false).Render("day after >>"),
+		globals.ZoneNextDate,
+		style.GenericButtonStyle.Render("day after >>"),
 	))
 
 	content := lipgloss.JoinVertical(
@@ -101,7 +97,7 @@ func (m Model) View() tea.View {
 	)
 
 	return tea.NewView(zone.Mark(
-		m.Zone,
+		string(m.Zone),
 		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
