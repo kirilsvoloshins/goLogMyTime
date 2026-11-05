@@ -2,7 +2,10 @@ package styles
 
 import (
 	"goLogMyTime/common/colors"
+	"goLogMyTime/types"
+	"goLogMyTime/utils"
 	"image/color"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 )
@@ -119,4 +122,67 @@ func GetStyle(paletteIndex int) Style {
 		},
 		EmbeddedStatusBar: lipgloss.NewStyle().Foreground(colors.FadedStatusColor),
 	}
+}
+
+func GetPaddedDefLines(taskDefs []types.TaskDefinition) []string {
+	var longestTaskTicket string
+
+	for _, taskDef := range taskDefs {
+		if len(taskDef.Ticket) > len(longestTaskTicket) {
+			longestTaskTicket = taskDef.Ticket
+		}
+	}
+
+	var lines []string
+
+	for _, taskDef := range taskDefs {
+		padding := len(longestTaskTicket) - len(taskDef.Ticket)
+
+		var sb strings.Builder
+		sb.WriteString(taskDef.Info)
+		sb.WriteString(" - ")
+		sb.WriteString(taskDef.Ticket)
+
+		for _ = range padding {
+			sb.WriteString(" ")
+		}
+
+		sb.WriteString(" ")
+		lines = append(lines, sb.String())
+	}
+
+	return lines
+}
+
+func GetPaddedTimeTableLines(tt *types.TimeTable, taskDefs *types.TaskDefinitionMap) []string {
+	var longestTaskTicket string
+
+	for _, entry := range *tt {
+		if len(entry.Name) > len(longestTaskTicket) {
+			longestTaskTicket = entry.Name
+		}
+	}
+
+	var lines []string
+
+	for _, entry := range *tt {
+		taskDef, ok := (*taskDefs)[entry.Name]
+		utils.Assert(ok, "timetable record is missing from task defs")
+
+		padding := len(longestTaskTicket) - len(entry.Name)
+
+		var sb strings.Builder
+		sb.WriteString(taskDef.Info)
+		sb.WriteString(" - ")
+		sb.WriteString(taskDef.Ticket)
+
+		for _ = range padding {
+			sb.WriteString(" ")
+		}
+
+		sb.WriteString(" ")
+		lines = append(lines, sb.String())
+	}
+
+	return lines
 }

@@ -3,6 +3,7 @@ package TimeTable
 import (
 	"fmt"
 	"goLogMyTime/common/globals"
+	"goLogMyTime/common/styles"
 	"goLogMyTime/store"
 	"goLogMyTime/types"
 	"goLogMyTime/utils"
@@ -27,10 +28,12 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		if types.Zone(msg) == m.Zone {
 			m.IsFocused = true
 		}
+
 	case types.BlurZoneMsg:
 		if types.Zone(msg) == m.Zone {
 			m.IsFocused = false
 		}
+
 	case tea.MouseClickMsg:
 		if utils.IsLeftClickInBoundsOf(globals.ZoneNextDate, msg) {
 			m.Store.Ui.ChangeDaysOffset(true)
@@ -39,6 +42,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		if utils.IsLeftClickInBoundsOf(globals.ZonePrevDate, msg) {
 			m.Store.Ui.ChangeDaysOffset(false)
 		}
+
 	case tea.KeyPressMsg:
 		if !m.IsFocused {
 			break
@@ -66,12 +70,10 @@ func (m *Model) View() tea.View {
 	var sb strings.Builder
 
 	if timeTable != nil {
-		for _, record := range *timeTable {
-			taskDefinition, ok := m.Store.Task.TaskDefinitionMap[record.Name]
-			utils.Assert(ok, "very not ok")
-
+		paddedLines := styles.GetPaddedTimeTableLines(timeTable, &m.Store.Task.TaskDefinitionMap)
+		for id, record := range *timeTable {
 			hours, minutes := utils.MinutesToHoursMinutes(record.Minutes)
-			fmt.Fprintf(&sb, "\n%s - %s - %dh %dmin", taskDefinition.Info, record.Name, hours, minutes)
+			fmt.Fprintf(&sb, "\n%s - %dh %02dmin", paddedLines[id], hours, minutes)
 		}
 	}
 

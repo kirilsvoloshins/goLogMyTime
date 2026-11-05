@@ -1,6 +1,7 @@
 package TasksRecent
 
 import (
+	"goLogMyTime/common/styles"
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
 	"goLogMyTime/store"
 	"goLogMyTime/types"
@@ -72,21 +73,27 @@ func (m *Model) View() tea.View {
 	var title = lipgloss.Sprintf("Recent tasks [%s]", m.Shortcut)
 	var titleRendered = style.SectionTitle.Render(title)
 
-	var linesRendered []string
-	for _, taskDefinition := range m.Store.Task.TaskDefinitionsRecent {
-		_, isButtonInMap := m.ButtonsStartStopMap[taskDefinition.Ticket]
+	taskDefs := m.Store.Task.TaskDefinitionsRecent
+
+	for _, taskDef := range taskDefs {
+		_, isButtonInMap := m.ButtonsStartStopMap[taskDef.Ticket]
 		if !isButtonInMap {
-			m.ButtonsStartStopMap[taskDefinition.Ticket] = ButtonStartStop.Model{
+			m.ButtonsStartStopMap[taskDef.Ticket] = ButtonStartStop.Model{
 				Store:    m.Store,
-				Ticket:   taskDefinition.Ticket,
+				Ticket:   taskDef.Ticket,
 				IdPrefix: "R_",
 			}
 		}
+	}
 
+	var linesRendered []string
+	paddedDefLines := styles.GetPaddedDefLines(taskDefs)
+
+	for id, taskDef := range taskDefs {
 		line := lipgloss.JoinHorizontal(
 			lipgloss.Bottom,
-			lipgloss.Sprintf("%s - %s ", taskDefinition.Info, taskDefinition.Ticket),
-			m.ButtonsStartStopMap[taskDefinition.Ticket].View().Content,
+			paddedDefLines[id],
+			m.ButtonsStartStopMap[taskDef.Ticket].View().Content,
 		)
 		linesRendered = append(linesRendered, line)
 	}
