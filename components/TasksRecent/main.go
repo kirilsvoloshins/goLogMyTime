@@ -26,6 +26,9 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	taskDefs := m.Store.Task.TaskDefinitionsRecent
+	if len(taskDefs) > 0 && m.Store.Ui.TasksRecentCursor >= len(taskDefs) {
+		m.Store.Ui.TasksRecentCursor = len(taskDefs) - 1
+	}
 
 	for ticket, buttonStartStop := range m.ButtonsStartStopMap {
 		var actual = false
@@ -101,14 +104,9 @@ func (m *Model) View() tea.View {
 	var sb strings.Builder
 	sb.WriteString(titleRendered)
 
-	cursor := 0
-	if m.Store.Ui.TasksRecentCursor < len(linesRendered) {
-		cursor = m.Store.Ui.TasksRecentCursor
-	}
-
 	for index, line := range linesRendered {
 		sb.WriteString("\n")
-		if index == cursor && m.IsFocused {
+		if index == m.Store.Ui.TasksRecentCursor && m.IsFocused {
 			sb.WriteString("> ")
 		}
 		sb.WriteString(line)
