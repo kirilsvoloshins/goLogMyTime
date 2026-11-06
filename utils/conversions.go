@@ -17,7 +17,7 @@ func mapPointerToArray(taskDefinitionMap *types.TaskDefinitionMap) []types.TaskD
 	return out
 }
 
-func MapPointerToArrayByModified(taskDefinitionMap *types.TaskDefinitionMap) []types.TaskDefinition {
+func MapPointerToArrayByModified(taskDefinitionMap *types.TaskDefinitionMap) types.TaskDefinitions {
 	tasks := mapPointerToArray(taskDefinitionMap)
 
 	sort.Slice(tasks, func(i, j int) bool {
@@ -29,14 +29,14 @@ func MapPointerToArrayByModified(taskDefinitionMap *types.TaskDefinitionMap) []t
 	return tasks
 }
 
-func MapPointerToArrayRecent(taskDefinitionMap *types.TaskDefinitionMap) []types.TaskDefinition {
+func MapPointerToArrayRecent(taskDefinitionMap *types.TaskDefinitionMap) types.TaskDefinitions {
 	tasksSortedByModified := MapPointerToArrayByModified(taskDefinitionMap)
 
-	var tasksRecentCapped types.TaskDefinitionsRecent
+	var tasksRecentCapped types.TaskDefinitions
 	if len(tasksSortedByModified) >= 5 {
-		tasksRecentCapped = make(types.TaskDefinitionsRecent, 5)
+		tasksRecentCapped = make(types.TaskDefinitions, 5)
 	} else {
-		tasksRecentCapped = make(types.TaskDefinitionsRecent, len(tasksSortedByModified))
+		tasksRecentCapped = make(types.TaskDefinitions, len(tasksSortedByModified))
 	}
 
 	copy(tasksRecentCapped, tasksSortedByModified)
@@ -44,8 +44,8 @@ func MapPointerToArrayRecent(taskDefinitionMap *types.TaskDefinitionMap) []types
 }
 
 // TODO: sort them once and later reuse here :)
-func MapPointerToArrayFavorite(taskDefinitionMap *types.TaskDefinitionMap) []types.TaskDefinition {
-	tasksFavorite := []types.TaskDefinition{}
+func MapPointerToArrayFavorite(taskDefinitionMap *types.TaskDefinitionMap) types.TaskDefinitions {
+	var tasksFavorite types.TaskDefinitions
 	tasksSortedByModified := MapPointerToArrayByModified(taskDefinitionMap)
 
 	for _, task := range tasksSortedByModified {

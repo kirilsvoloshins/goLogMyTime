@@ -34,6 +34,7 @@ type Style struct {
 	ButtonInactive          lipgloss.Style
 	ButtonActive            lipgloss.Style
 	GetStartStopButtonStyle func(active bool) lipgloss.Style
+	GetFavoriteButtonStyle  func(isFavorite bool) lipgloss.Style
 	GenericButtonStyle      lipgloss.Style
 	EmbeddedStatusBar       lipgloss.Style
 }
@@ -61,6 +62,16 @@ func GetStyle(paletteIndex int) Style {
 		Foreground(colors.DisabledButtonTextColor).
 		Padding(0, Sizes.ButtonPadding).
 		Background(colors.FocusedBorderColor).
+		Bold(true)
+
+	buttonFavour := lipgloss.NewStyle().
+		Foreground(colors.DisabledButtonTextColor).
+		Padding(0, Sizes.ButtonPadding).
+		Bold(true)
+
+	buttonUnfavour := lipgloss.NewStyle().
+		Foreground(colors.DisabledButtonTextColor).
+		Padding(0, Sizes.ButtonPadding).
 		Bold(true)
 
 	colorHighContrast := lipgloss.Color("#FFF")
@@ -105,6 +116,13 @@ func GetStyle(paletteIndex int) Style {
 
 			return buttonInactive
 		},
+		GetFavoriteButtonStyle: func(isFavorite bool) lipgloss.Style {
+			if isFavorite {
+				return buttonUnfavour
+			}
+
+			return buttonFavour
+		},
 		GenericButtonStyle: buttonInactive,
 		GetEmbeddedSectionStyle: func(focused bool) lipgloss.Style {
 			embeddedSectionContainer := lipgloss.NewStyle().
@@ -124,7 +142,7 @@ func GetStyle(paletteIndex int) Style {
 	}
 }
 
-func GetPaddedDefLines(taskDefs []types.TaskDefinition) []string {
+func GetPaddedDefLines(taskDefs types.TaskDefinitions) []string {
 	var longestTaskTicket string
 
 	for _, taskDef := range taskDefs {

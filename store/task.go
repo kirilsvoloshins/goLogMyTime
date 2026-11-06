@@ -14,8 +14,8 @@ type TaskStore struct {
 	TaskRecordsByDateMap    types.TaskRecordsByDateMap
 	TaskRecordActive        *types.TaskRecord
 	TaskDefinitionActive    *types.TaskDefinition
-	TaskDefinitionsFavorite types.TaskDefinitionsFavorite
-	TaskDefinitionsRecent   types.TaskDefinitionsRecent
+	TaskDefinitionsFavorite types.TaskDefinitions
+	TaskDefinitionsRecent   types.TaskDefinitions
 }
 
 func (s *TaskStore) IsTaskValidAndNew(ticket types.Ticket, title string) bool {
@@ -44,13 +44,9 @@ func (s *TaskStore) IsTaskStarted(ticket string) bool {
 	return ticket == s.TaskRecordActive.Ticket
 }
 
-func (s *TaskStore) GetTaskDefinition(ticket types.Ticket) *types.TaskDefinition {
+func (s *TaskStore) GetTaskDefinition(ticket types.Ticket) (types.TaskDefinition, bool) {
 	taskDef, exists := s.TaskDefinitionMap[ticket]
-	if exists {
-		return &taskDef
-	}
-
-	return nil
+	return taskDef, exists
 }
 
 func (s *TaskStore) GetTaskDefinitionFromRecord(taskRecord *types.TaskRecord) *types.TaskDefinition {
@@ -58,7 +54,8 @@ func (s *TaskStore) GetTaskDefinitionFromRecord(taskRecord *types.TaskRecord) *t
 		return nil
 	}
 
-	return s.GetTaskDefinition(taskRecord.Ticket)
+	taskDef, _ := s.GetTaskDefinition(taskRecord.Ticket)
+	return &taskDef
 }
 
 func (s *TaskStore) TaskCreateAndStart(ticket string, title string) {
@@ -86,17 +83,17 @@ func (s *TaskStore) TaskToggle(ticket string) types.TaskStateChange {
 }
 
 func (s *TaskStore) TaskToggleIfValid(ticket string, title string) types.TaskStateChange {
-	taskDef := s.GetTaskDefinition(ticket)
-	if taskDef == nil {
-		if s.IsTaskValidAndNew(ticket, title) {
-			s.TaskCreateAndStart(ticket, title)
-			return globals.TASK_GOT_STARTED
-		}
-
-		return globals.TASK_NOTHING_HAPPENED
+	taskDef, exists := s.GetTaskDefinition(ticket)
+	if exists {
+		return s.TaskToggle(taskDef.Ticket)
 	}
 
-	return s.TaskToggle(taskDef.Ticket)
+	if s.IsTaskValidAndNew(ticket, title) {
+		s.TaskCreateAndStart(ticket, title)
+		return globals.TASK_GOT_STARTED
+	}
+
+	return globals.TASK_NOTHING_HAPPENED
 }
 
 func (s *TaskStore) TaskStart(ticket string) {
@@ -155,6 +152,20 @@ func (s *TaskStore) TasksStopAtDate(dateString string) {
 
 	// s.InputTicket = ""
 	// s.InputDescription = ""
+	s.RootStore.Sync()
+}
+
+func (s *TaskStore) IsTaskFavorite(ticket types.Ticket) bool {
+	taskDef, exists := s.GetTaskDefinition(ticket)
+	return exists && taskDef.IsFavorite
+}
+
+func (s *TaskStore) TaskFavoriteToggle(ticket types.Ticket) {
+	taskDef, exists := s.GetTaskDefinition(ticket)
+	utils.Assert(exists, "does not exist")
+	taskDef.IsFavorite = !taskDef.IsFavorite
+	s.TaskDefinitionMap[ticket] = taskDef
+	utils.WriteTaskDefinitionMap(s.TaskDefinitionMap)
 	s.RootStore.Sync()
 }
 
@@ -224,20 +235,20 @@ func (s *TaskStore) GetDateAndTimeTable(todaysDate time.Time, offsetFromToday in
 }
 
 // Sync time only below
-func (s *TaskStore) GetTaskDefinitionsFavorite() types.TaskDefinitionsFavorite {
+func (s *TaskStore) GetTaskDefinitionsFavorite() types.TaskDefinitions {
 	return utils.MapPointerToArrayFavorite(&s.TaskDefinitionMap)
 }
 
-func (s *TaskStore) GetTaskDefinitionsRecent() types.TaskDefinitionsRecent {
+func (s *TaskStore) GetTaskDefinitionsRecent() types.TaskDefinitions {
 	taskDefsRecent := utils.MapPointerToArrayRecent(&s.TaskDefinitionMap)
 	if s.TaskRecordActive == nil {
 		return taskDefsRecent
 	}
 
-	var taskDefs types.TaskDefinitionsRecent
-	taskDefActive := s.GetTaskDefinition(s.TaskRecordActive.Ticket)
+	var taskDefs types.TaskDefinitions
+	taskDefActive, exists := s.GetTaskDefinition(s.TaskRecordActive.Ticket)
 	for _, taskDef := range taskDefsRecent {
-		if taskDef.Ticket != taskDefActive.Ticket {
+		if !exists || taskDef.Ticket != taskDefActive.Ticket {
 			taskDefs = append(taskDefs, taskDef)
 		}
 	}

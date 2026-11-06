@@ -15,7 +15,7 @@ type Model struct {
 	IdPrefix string
 }
 
-func (m Model) Update(msg tea.Msg) tea.Cmd {
+func (m *Model) Update(msg tea.Msg) tea.Cmd {
 	mouseClickMsg, isMouseClick := msg.(tea.MouseClickMsg)
 
 	if isMouseClick && utils.IsLeftClickInBoundsOf(m.getButtonZone(), mouseClickMsg) {
@@ -25,7 +25,7 @@ func (m Model) Update(msg tea.Msg) tea.Cmd {
 	return nil
 }
 
-func (m Model) View() tea.View {
+func (m *Model) View() tea.View {
 	isActive := m.Store.Task.IsTaskStarted(m.Ticket)
 	buttonStyle := m.Store.Ui.Style.GetStartStopButtonStyle(isActive)
 	buttonLabel := m.getButtonLabel(isActive)
@@ -36,11 +36,11 @@ func (m Model) View() tea.View {
 	))
 }
 
-func (m Model) getButtonZone() types.Zone {
+func (m *Model) getButtonZone() types.Zone {
 	return types.Zone(m.IdPrefix + m.Ticket)
 }
 
-func (m Model) getButtonLabel(active bool) string {
+func (m *Model) getButtonLabel(active bool) string {
 	if active {
 		return "stop"
 	}

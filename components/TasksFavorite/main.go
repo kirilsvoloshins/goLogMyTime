@@ -2,6 +2,7 @@ package TasksFavorite
 
 import (
 	"goLogMyTime/common/styles"
+	"goLogMyTime/components/ButtonFavorite"
 	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
 	"goLogMyTime/store"
 	"goLogMyTime/types"
@@ -13,41 +14,51 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
-var idPrefix = "F_"
+const (
+	prefixBtnStartStop = "FS_"
+	prefixBtnFavorite  = "FF_"
+)
 
+// TODO: refactor, so whole line is a component - no per feature button maps :)
 type Model struct {
 	Store               *store.RootStore
 	Shortcut            types.SectionShortcut
 	Zone                types.Zone
 	Width               int
 	IsFocused           bool
-	ButtonsStartStopMap map[string]ButtonStartStop.Model
+	ButtonsStartStopMap map[types.Ticket]ButtonStartStop.Model
+	ButtonsFavoriteMap  map[types.Ticket]ButtonFavorite.Model
+}
+
+func (m *Model) Init() {
+	m.syncButtons()
 }
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
 
-	taskDefinitionsFavorite := m.Store.Task.TaskDefinitionsFavorite
+	m.syncButtons()
 
-	for ticket, buttonStartStop := range m.ButtonsStartStopMap {
-		var actual = false
-		for _, taskDefinition := range taskDefinitionsFavorite {
-			if ticket == taskDefinition.Ticket {
-				actual = true
-				break
-			}
-		}
-		if !actual {
-			delete(m.ButtonsStartStopMap, ticket)
+	for ticket := range m.ButtonsStartStopMap {
+		if btn, ok := m.ButtonsStartStopMap[ticket]; ok {
+			cmd = btn.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 
-		cmd = buttonStartStop.Update(msg)
-		cmds = append(cmds, cmd)
+		if btn, ok := m.ButtonsFavoriteMap[ticket]; ok {
+			cmd = btn.Update(msg)
+			cmds = append(cmds, cmd)
+		}
+	}
+
+	taskDefs := m.Store.Task.TaskDefinitionsFavorite
+
+	if len(taskDefs) > 0 && m.Store.Ui.TasksFavoriteCursor >= len(taskDefs) {
+		m.Store.Ui.TasksFavoriteCursor = len(taskDefs) - 1
 	}
 
 	switch msg := msg.(type) {
-
 	case types.FocusZoneMsg:
 		if types.Zone(msg) == m.Zone {
 			m.IsFocused = true
@@ -58,15 +69,14 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 			m.IsFocused = false
 		}
 
-	}
+	case tea.KeyPressMsg:
+		if m.IsFocused {
+			isToggleKey := utils.IsEnterKeyMsg(msg) || utils.IsSpaceKeyMsg(msg)
 
-	keyPressMsg, isKeyPress := msg.(tea.KeyPressMsg)
-	if isKeyPress && m.IsFocused {
-		isToggleKey := utils.IsEnterKeyMsg(keyPressMsg) || utils.IsSpaceKeyMsg(keyPressMsg)
-
-		if isToggleKey && len(m.Store.Task.TaskDefinitionsFavorite) > 0 {
-			taskDef := m.Store.Task.TaskDefinitionsFavorite[m.Store.Ui.TasksFavoriteCursor]
-			m.Store.Task.TaskToggle(taskDef.Ticket)
+			if isToggleKey && len(m.Store.Task.TaskDefinitionsFavorite) > 0 {
+				taskDef := m.Store.Task.TaskDefinitionsFavorite[m.Store.Ui.TasksFavoriteCursor]
+				m.Store.Task.TaskToggle(taskDef.Ticket)
+			}
 		}
 	}
 
@@ -80,25 +90,17 @@ func (m *Model) View() tea.View {
 
 	taskDefs := m.Store.Task.TaskDefinitionsFavorite
 
-	for _, taskDef := range taskDefs {
-		_, isButtonInMap := m.ButtonsStartStopMap[taskDef.Ticket]
-		if !isButtonInMap {
-			m.ButtonsStartStopMap[taskDef.Ticket] = ButtonStartStop.Model{
-				Store:    m.Store,
-				Ticket:   taskDef.Ticket,
-				IdPrefix: idPrefix,
-			}
-		}
-	}
-
 	var linesRendered []string
 	paddedDefLines := styles.GetPaddedDefLines(taskDefs)
 
 	for id, taskDef := range taskDefs {
+		btnStartStop := m.ButtonsStartStopMap[taskDef.Ticket]
+		btnFavorite := m.ButtonsFavoriteMap[taskDef.Ticket]
 		line := lipgloss.JoinHorizontal(
 			lipgloss.Bottom,
 			paddedDefLines[id],
-			m.ButtonsStartStopMap[taskDef.Ticket].View().Content,
+			btnStartStop.View().Content,
+			btnFavorite.View().Content,
 		)
 		linesRendered = append(linesRendered, line)
 	}
@@ -106,14 +108,9 @@ func (m *Model) View() tea.View {
 	var sb strings.Builder
 	sb.WriteString(titleRendered)
 
-	cursor := 0
-	if m.Store.Ui.TasksFavoriteCursor < len(linesRendered) {
-		cursor = m.Store.Ui.TasksFavoriteCursor
-	}
-
 	for index, line := range linesRendered {
 		sb.WriteString("\n")
-		if index == cursor && m.IsFocused {
+		if index == m.Store.Ui.TasksFavoriteCursor && m.IsFocused {
 			sb.WriteString("> ")
 		}
 		sb.WriteString(line)
@@ -128,4 +125,33 @@ func (m *Model) View() tea.View {
 			),
 		),
 	))
+}
+
+func (m *Model) syncButtons() {
+	taskDefs := m.Store.Task.TaskDefinitionsRecent
+
+	validTickets := make(map[types.Ticket]bool, len(taskDefs))
+	for _, taskDef := range taskDefs {
+		validTickets[taskDef.Ticket] = true
+
+		if _, exists := m.ButtonsStartStopMap[taskDef.Ticket]; !exists {
+			m.ButtonsStartStopMap[taskDef.Ticket] = ButtonStartStop.Model{
+				Store:    m.Store,
+				Ticket:   taskDef.Ticket,
+				IdPrefix: prefixBtnStartStop,
+			}
+			m.ButtonsFavoriteMap[taskDef.Ticket] = ButtonFavorite.Model{
+				Store:    m.Store,
+				Ticket:   taskDef.Ticket,
+				IdPrefix: prefixBtnFavorite,
+			}
+		}
+	}
+
+	for ticket := range m.ButtonsStartStopMap {
+		if !validTickets[ticket] {
+			delete(m.ButtonsStartStopMap, ticket)
+			delete(m.ButtonsFavoriteMap, ticket)
+		}
+	}
 }

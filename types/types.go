@@ -7,9 +7,9 @@ type TaskDefinition struct {
 	TimestampOfLastActivity int64  `json:"timestampOfLastActivity"`
 }
 
+type TaskDefinitions []TaskDefinition
+
 type TaskDefinitionMap map[string]TaskDefinition
-type TaskDefinitionsRecent []TaskDefinition
-type TaskDefinitionsFavorite []TaskDefinition
 
 type TaskRecord struct {
 	Ticket           string `json:"ticket"`

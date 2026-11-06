@@ -41,8 +41,8 @@ func (m *Model) View() tea.View {
 
 func (m *Model) GetButtonStyle() (string, lipgloss.Style) {
 	ticket := m.Store.Ui.InputTicket
-	taskDefinition := m.Store.Task.GetTaskDefinition(ticket)
-	if taskDefinition != nil {
+	_, exists := m.Store.Task.GetTaskDefinition(ticket)
+	if exists {
 		if m.Store.Task.IsTaskStarted(ticket) {
 			return "stop", m.Store.Ui.Style.ButtonActive
 		}
