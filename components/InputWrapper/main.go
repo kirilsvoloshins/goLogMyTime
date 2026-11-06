@@ -58,7 +58,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		if m.hasActiveTask {
 			*m.StringPtr = ""
 		} else if m.TextInput.Focused() {
-			*m.StringPtr = strings.TrimSpace(m.TextInput.Value())
+			*m.StringPtr = strings.TrimPrefix(m.TextInput.Value(), " ")
 		}
 
 		m.hasActiveTask = false

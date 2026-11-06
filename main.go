@@ -300,13 +300,13 @@ func main() {
 	app.nowDoing.TextInputTitle.TextInput.Placeholder = "Something great"
 	app.nowDoing.TextInputTitle.TextInput.Prompt = "Title: "
 	app.nowDoing.TextInputTitle.TextInput.SetVirtualCursor(true)
-	app.nowDoing.TextInputTitle.TextInput.CharLimit = 10
+	app.nowDoing.TextInputTitle.TextInput.CharLimit = 15
 	app.nowDoing.TextInputTitle.TextInput.SetWidth(15)
 
 	app.nowDoing.TextInputTask.TextInput.Placeholder = "DEV-1234"
 	app.nowDoing.TextInputTask.TextInput.Prompt = "Task: "
 	app.nowDoing.TextInputTask.TextInput.SetVirtualCursor(true)
-	app.nowDoing.TextInputTask.TextInput.CharLimit = 10
+	app.nowDoing.TextInputTask.TextInput.CharLimit = 15
 	app.nowDoing.TextInputTask.TextInput.SetWidth(15)
 
 	p := tea.NewProgram(&app)
