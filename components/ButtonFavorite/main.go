@@ -43,8 +43,8 @@ func (m *Model) getZone() types.Zone {
 
 func (m *Model) getLabel(isFavorite bool) string {
 	if isFavorite {
-		return "💔"
+		return "♥"
 	}
 
-	return "❤️ "
+	return "♡"
 }

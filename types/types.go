@@ -24,7 +24,7 @@ type TaskRecords []TaskRecord
 
 type TimeTableMap map[string]int64 // task: minutes
 type TimeEntry struct {
-	Name    string
+	Ticket  string
 	Minutes int
 }
 type TimeTable []TimeEntry
@@ -40,9 +40,5 @@ type Zone string
 
 type FocusZoneMsg string
 type BlurZoneMsg string
-
-type Direction string
-
-type ButtonState string
 
 type TaskStateChange string

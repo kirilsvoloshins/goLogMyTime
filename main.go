@@ -8,8 +8,6 @@ import (
 	"goLogMyTime/common/globals"
 	"goLogMyTime/common/styles"
 	ButtonCreateStartStop "goLogMyTime/components/ButtonCreateStartStopTask"
-	"goLogMyTime/components/ButtonFavorite"
-	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
 	"goLogMyTime/components/EmbeddedMarkdown"
 	"goLogMyTime/components/HintsContextAware"
 	"goLogMyTime/components/InputWrapper"
@@ -260,18 +258,14 @@ func main() {
 		store:             rootStore,
 		hintsContextAware: &HintsContextAware.Model{Store: rootStore},
 		tasksRecent: &TasksRecent.Model{
-			Store:               rootStore,
-			Zone:                globals.InteractiveSections.TasksRecent.Zone,
-			Shortcut:            globals.InteractiveSections.TasksRecent.Shortcut,
-			ButtonsStartStopMap: map[string]ButtonStartStop.Model{},
-			ButtonsFavoriteMap:  map[string]ButtonFavorite.Model{},
+			Store:    rootStore,
+			Zone:     globals.InteractiveSections.TasksRecent.Zone,
+			Shortcut: globals.InteractiveSections.TasksRecent.Shortcut,
 		},
 		tasksFavorite: &TasksFavorite.Model{
-			Store:               rootStore,
-			Zone:                globals.InteractiveSections.TasksFavorite.Zone,
-			Shortcut:            globals.InteractiveSections.TasksFavorite.Shortcut,
-			ButtonsStartStopMap: map[string]ButtonStartStop.Model{},
-			ButtonsFavoriteMap:  map[string]ButtonFavorite.Model{},
+			Store:    rootStore,
+			Zone:     globals.InteractiveSections.TasksFavorite.Zone,
+			Shortcut: globals.InteractiveSections.TasksFavorite.Shortcut,
 		},
 		nowDoing: &NowDoing.Model{
 			Store:                 rootStore,
@@ -299,9 +293,6 @@ func main() {
 		},
 		embeddedMarkdown: &embeddedMarkdownModel,
 	}
-
-	app.tasksRecent.Init()
-	app.tasksFavorite.Init()
 
 	app.nowDoing.TextInputTitle.TextInput.Placeholder = "Something great"
 	app.nowDoing.TextInputTitle.TextInput.Prompt = "Title: "

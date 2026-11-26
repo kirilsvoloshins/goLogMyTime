@@ -18,30 +18,13 @@ type TaskStore struct {
 	TaskDefinitionsRecent   types.TaskDefinitions
 }
 
-func (s *TaskStore) IsTaskValidAndNew(ticket types.Ticket, title string) bool {
-	if len(ticket) == 0 || len(title) == 0 {
-		return false
-	}
-
-	_, exists := s.DoesTaskExist(ticket)
-	return !exists
-}
-
 func (s *TaskStore) DoesTaskExist(ticket types.Ticket) (*types.TaskDefinition, bool) {
 	if len(ticket) == 0 {
 		return nil, false
 	}
 
-	taskDefinition, existing := s.TaskDefinitionMap[ticket]
-	return &taskDefinition, existing
-}
-
-func (s *TaskStore) IsTaskStarted(ticket string) bool {
-	if s.TaskRecordActive == nil {
-		return false
-	}
-
-	return ticket == s.TaskRecordActive.Ticket
+	taskDef, exists := s.GetTaskDefinition(ticket)
+	return &taskDef, exists
 }
 
 func (s *TaskStore) GetTaskDefinition(ticket types.Ticket) (types.TaskDefinition, bool) {
@@ -56,6 +39,23 @@ func (s *TaskStore) GetTaskDefinitionFromRecord(taskRecord *types.TaskRecord) *t
 
 	taskDef, _ := s.GetTaskDefinition(taskRecord.Ticket)
 	return &taskDef
+}
+
+func (s *TaskStore) IsTaskValidAndNew(ticket types.Ticket, title string) bool {
+	if len(ticket) == 0 || len(title) == 0 {
+		return false
+	}
+
+	_, exists := s.DoesTaskExist(ticket)
+	return !exists
+}
+
+func (s *TaskStore) IsTaskStarted(ticket string) bool {
+	if s.TaskRecordActive == nil {
+		return false
+	}
+
+	return ticket == s.TaskRecordActive.Ticket
 }
 
 func (s *TaskStore) TaskCreateAndStart(ticket string, title string) {
@@ -180,29 +180,20 @@ func (s *TaskStore) GetTimeTable(dateString string) *types.TimeTable {
 	for _, taskRecord := range allRecordsAtDate {
 		end := taskRecord.TimestampOfEnd
 
-		// task in progress
 		if taskRecord.TimestampOfEnd == 0 {
 			end = utils.GetTimestamp()
 		}
 
-		durationMs := end - taskRecord.TimestampOfStart
-
-		_, alreadyInMap := timetableMap[taskRecord.Ticket]
-		if alreadyInMap {
-			timetableMap[taskRecord.Ticket] += durationMs
-		} else {
-			timetableMap[taskRecord.Ticket] = durationMs
-		}
+		timetableMap[taskRecord.Ticket] += end - taskRecord.TimestampOfStart
 	}
 
 	var timetable types.TimeTable
 
 	// TODO: better way of converting map to array
 	for key, valueMs := range timetableMap {
-		valueMinutes := int(valueMs / 1000 / 60)
 		timetable = append(timetable, types.TimeEntry{
-			Name:    key,
-			Minutes: valueMinutes,
+			Ticket:  key,
+			Minutes: int(valueMs / 1000 / 60),
 		})
 	}
 

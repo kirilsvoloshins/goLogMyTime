@@ -135,17 +135,6 @@ func blurZoneCmd(zone types.Zone) tea.Cmd {
 }
 
 const (
-	Next types.Direction = "next"
-	Prev types.Direction = "prev"
-)
-
-const (
-	Disabled types.ButtonState = "disabled"
-	Inactive types.ButtonState = "inactive"
-	Active   types.ButtonState = "active"
-)
-
-const (
 	TASK_GOT_STARTED      types.TaskStateChange = "TASK_GOT_STARTED"
 	TASK_GOT_STOPPED      types.TaskStateChange = "TASK_GOT_STOPPED"
 	TASK_NOTHING_HAPPENED types.TaskStateChange = "TASK_NOTHING_HAPPENED"

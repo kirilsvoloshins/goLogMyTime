@@ -2,8 +2,7 @@ package TasksRecent
 
 import (
 	"goLogMyTime/common/styles"
-	"goLogMyTime/components/ButtonFavorite"
-	ButtonStartStop "goLogMyTime/components/ButtonStartStopTask"
+	"goLogMyTime/components/TaskLine"
 	"goLogMyTime/store"
 	"goLogMyTime/types"
 	"goLogMyTime/utils"
@@ -14,47 +13,34 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
-const (
-	prefixBtnStartStop = "RS_"
-	prefixBtnFavorite  = "RF_"
-)
+const PREFIX = "R"
 
 type Model struct {
-	Store               *store.RootStore
-	Shortcut            types.SectionShortcut
-	Zone                types.Zone
-	Width               int
-	IsFocused           bool
-	ButtonsStartStopMap map[types.Ticket]ButtonStartStop.Model
-	ButtonsFavoriteMap  map[types.Ticket]ButtonFavorite.Model
-}
-
-func (m *Model) Init() {
-	m.syncButtons()
+	Store     *store.RootStore
+	Width     int
+	IsFocused bool
+	Shortcut  types.SectionShortcut
+	Zone      types.Zone
+	taskLines []TaskLine.Model
 }
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
-	var cmds []tea.Cmd
-	var cmd tea.Cmd
-
-	m.syncButtons()
-
-	for ticket := range m.ButtonsStartStopMap {
-		if btn, ok := m.ButtonsStartStopMap[ticket]; ok {
-			cmd = btn.Update(msg)
-			cmds = append(cmds, cmd)
-		}
-
-		if btn, ok := m.ButtonsFavoriteMap[ticket]; ok {
-			cmd = btn.Update(msg)
-			cmds = append(cmds, cmd)
-		}
-	}
+	m.taskLines = []TaskLine.Model{}
 
 	taskDefs := m.Store.Task.TaskDefinitionsRecent
+	maxTicketLength := styles.GetLongestTicketLen(taskDefs)
 
-	if len(taskDefs) > 0 && m.Store.Ui.TasksRecentCursor >= len(taskDefs) {
-		m.Store.Ui.TasksRecentCursor = len(taskDefs) - 1
+	for i, taskDef := range taskDefs {
+		taskPadding := maxTicketLength - len(taskDef.Ticket)
+		taskLine := TaskLine.Model{
+			Store:       m.Store,
+			ZoneParent:  m.Zone,
+			IsSelected:  m.IsFocused && i == m.Store.Ui.TasksRecentCursor,
+			TaskDef:     taskDef,
+			TaskPadding: taskPadding,
+		}
+		taskLine.Update(msg)
+		m.taskLines = append(m.taskLines, taskLine)
 	}
 
 	switch msg := msg.(type) {
@@ -79,78 +65,25 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		}
 	}
 
-	return m, cmd
+	return m, nil
 }
 
 func (m *Model) View() tea.View {
 	var style = m.Store.Ui.Style
-	var title = lipgloss.Sprintf("Recent tasks [%s]", m.Shortcut)
-	var titleRendered = style.SectionTitle.Render(title)
-
-	taskDefs := m.Store.Task.TaskDefinitionsRecent
-
-	var linesRendered []string
-	paddedDefLines := styles.GetPaddedDefLines(taskDefs)
-
-	for id, taskDef := range taskDefs {
-		btnStartStop := m.ButtonsStartStopMap[taskDef.Ticket]
-		btnFavorite := m.ButtonsFavoriteMap[taskDef.Ticket]
-		line := lipgloss.JoinHorizontal(
-			lipgloss.Bottom,
-			paddedDefLines[id],
-			btnStartStop.View().Content,
-			btnFavorite.View().Content,
-		)
-		linesRendered = append(linesRendered, line)
-	}
 
 	var sb strings.Builder
-	sb.WriteString(titleRendered)
-
-	for index, line := range linesRendered {
-		sb.WriteString("\n")
-		if index == m.Store.Ui.TasksRecentCursor && m.IsFocused {
-			sb.WriteString("> ")
-		}
-		sb.WriteString(line)
+	sb.WriteString(
+		style.SectionTitle.Render(
+			lipgloss.Sprintf("Recent tasks [%s] ", m.Shortcut),
+		),
+	)
+	for _, taskLine := range m.taskLines {
+		sb.WriteString(taskLine.View().Content)
 	}
 
+	s := style.GetSectionStyle(m.IsFocused).Width(m.Width).Padding(0, 0)
 	return tea.NewView(zone.Mark(
 		string(m.Zone),
-		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
-			lipgloss.JoinVertical(
-				lipgloss.Right,
-				sb.String(),
-			),
-		),
+		s.Render(sb.String()),
 	))
-}
-
-func (m *Model) syncButtons() {
-	taskDefs := m.Store.Task.TaskDefinitionsRecent
-
-	validTickets := make(map[types.Ticket]bool, len(taskDefs))
-	for _, taskDef := range taskDefs {
-		validTickets[taskDef.Ticket] = true
-
-		if _, exists := m.ButtonsStartStopMap[taskDef.Ticket]; !exists {
-			m.ButtonsStartStopMap[taskDef.Ticket] = ButtonStartStop.Model{
-				Store:    m.Store,
-				Ticket:   taskDef.Ticket,
-				IdPrefix: prefixBtnStartStop,
-			}
-			m.ButtonsFavoriteMap[taskDef.Ticket] = ButtonFavorite.Model{
-				Store:    m.Store,
-				Ticket:   taskDef.Ticket,
-				IdPrefix: prefixBtnFavorite,
-			}
-		}
-	}
-
-	for ticket := range m.ButtonsStartStopMap {
-		if !validTickets[ticket] {
-			delete(m.ButtonsStartStopMap, ticket)
-			delete(m.ButtonsFavoriteMap, ticket)
-		}
-	}
 }

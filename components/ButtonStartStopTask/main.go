@@ -16,10 +16,11 @@ type Model struct {
 }
 
 func (m *Model) Update(msg tea.Msg) tea.Cmd {
-	mouseClickMsg, isMouseClick := msg.(tea.MouseClickMsg)
-
-	if isMouseClick && utils.IsLeftClickInBoundsOf(m.getButtonZone(), mouseClickMsg) {
-		m.Store.Task.TaskToggle(m.Ticket)
+	switch msg := msg.(type) {
+	case tea.MouseClickMsg:
+		if utils.IsLeftClickInBoundsOf(m.getButtonZone(), msg) {
+			m.Store.Task.TaskToggle(m.Ticket)
+		}
 	}
 
 	return nil
@@ -27,12 +28,13 @@ func (m *Model) Update(msg tea.Msg) tea.Cmd {
 
 func (m *Model) View() tea.View {
 	isActive := m.Store.Task.IsTaskStarted(m.Ticket)
-	buttonStyle := m.Store.Ui.Style.GetStartStopButtonStyle(isActive)
-	buttonLabel := m.getButtonLabel(isActive)
+	s := m.Store.Ui.Style.GetStartStopButtonStyle(isActive)
 
 	return tea.NewView(zone.Mark(
 		string(m.getButtonZone()),
-		buttonStyle.Render(buttonLabel),
+		s.Render(
+			m.getButtonLabel(isActive),
+		),
 	))
 }
 

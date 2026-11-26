@@ -62,15 +62,16 @@ func GetStyle(paletteIndex int) Style {
 		Foreground(colors.DisabledButtonTextColor).
 		Padding(0, Sizes.ButtonPadding).
 		Background(colors.FocusedBorderColor).
-		Bold(true)
+		Bold(true).
+		Width(7)
 
 	buttonFavour := lipgloss.NewStyle().
-		Foreground(colors.DisabledButtonTextColor).
+		Foreground(lipgloss.Color("#565F89")).
 		Padding(0, Sizes.ButtonPadding).
 		Bold(true)
 
 	buttonUnfavour := lipgloss.NewStyle().
-		Foreground(colors.DisabledButtonTextColor).
+		Foreground(lipgloss.Color("#FF5F87")).
 		Padding(0, Sizes.ButtonPadding).
 		Bold(true)
 
@@ -142,63 +143,46 @@ func GetStyle(paletteIndex int) Style {
 	}
 }
 
-func GetPaddedDefLines(taskDefs types.TaskDefinitions) []string {
-	var longestTaskTicket string
+func GetLongestTicketLen(taskDefs types.TaskDefinitions) int {
+	var maxTicketLength int
 
 	for _, taskDef := range taskDefs {
-		if len(taskDef.Ticket) > len(longestTaskTicket) {
-			longestTaskTicket = taskDef.Ticket
-		}
+		maxTicketLength = max(maxTicketLength, len(taskDef.Ticket))
 	}
 
-	var lines []string
+	return maxTicketLength
+}
 
-	for _, taskDef := range taskDefs {
-		padding := len(longestTaskTicket) - len(taskDef.Ticket)
-
-		var sb strings.Builder
-		sb.WriteString(taskDef.Info)
-		sb.WriteString(" - ")
-		sb.WriteString(taskDef.Ticket)
-
-		for _ = range padding {
-			sb.WriteString(" ")
-		}
-
-		sb.WriteString(" ")
-		lines = append(lines, sb.String())
-	}
-
-	return lines
+func GetTaskInfo(taskDef types.TaskDefinition, padding int) string {
+	var sb strings.Builder
+	sb.WriteString(taskDef.Info)
+	sb.WriteString(" - ")
+	sb.WriteString(taskDef.Ticket)
+	sb.WriteString(strings.Repeat(" ", padding+1))
+	return sb.String()
 }
 
 func GetPaddedTimeTableLines(tt *types.TimeTable, taskDefs *types.TaskDefinitionMap) []string {
-	var longestTaskTicket string
+	var maxTicketLength int
 
 	for _, entry := range *tt {
-		if len(entry.Name) > len(longestTaskTicket) {
-			longestTaskTicket = entry.Name
-		}
+		maxTicketLength = max(maxTicketLength, len(entry.Ticket))
 	}
 
 	var lines []string
 
 	for _, entry := range *tt {
-		taskDef, ok := (*taskDefs)[entry.Name]
+		taskDef, ok := (*taskDefs)[entry.Ticket]
 		utils.Assert(ok, "timetable record is missing from task defs")
 
-		padding := len(longestTaskTicket) - len(entry.Name)
+		padding := maxTicketLength - len(entry.Ticket)
 
 		var sb strings.Builder
 		sb.WriteString(taskDef.Info)
 		sb.WriteString(" - ")
 		sb.WriteString(taskDef.Ticket)
+		sb.WriteString(strings.Repeat(" ", padding+1))
 
-		for _ = range padding {
-			sb.WriteString(" ")
-		}
-
-		sb.WriteString(" ")
 		lines = append(lines, sb.String())
 	}
 
