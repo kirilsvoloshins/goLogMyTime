@@ -6,6 +6,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+const WORK_DAY_IN_MINUTES = 8 * 60
+
 const (
 	ZoneUnfocused       = "none"
 	ZoneTextInputTitle  = "nowdoing-input-title"

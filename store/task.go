@@ -204,7 +204,7 @@ func (s *TaskStore) GetTimeTable(dateString string) *types.TimeTable {
 	return &timetable
 }
 
-func (s *TaskStore) GetTodaysWorkTimeMin(todaysDate time.Time) int {
+func (s *TaskStore) GetTodaysProgress(todaysDate time.Time) float32 {
 	timetable := s.GetTimeTable(utils.DateToString(todaysDate))
 	if timetable == nil {
 		return 0
@@ -215,7 +215,7 @@ func (s *TaskStore) GetTodaysWorkTimeMin(todaysDate time.Time) int {
 		workTimeMin += entry.Minutes
 	}
 
-	return workTimeMin
+	return float32(workTimeMin / globals.WORK_DAY_IN_MINUTES)
 }
 
 func (s *TaskStore) GetDateAndTimeTable(todaysDate time.Time, offsetFromToday int) (string, *types.TimeTable) {

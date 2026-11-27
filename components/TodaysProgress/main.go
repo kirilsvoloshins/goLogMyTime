@@ -20,47 +20,39 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 
 func (m *Model) View() tea.View {
 	style := m.Store.Ui.Style
-	workTimeMin := m.Store.Task.GetTodaysWorkTimeMin(m.Store.Ui.TodaysDate)
-	todaysProgressPercent := float64((100 * workTimeMin) / WORK_DAY_IN_MINUTES)
-	title := fmt.Sprintf("Days progress: %0.f%%", todaysProgressPercent)
+	progress := m.Store.Task.GetTodaysProgress(m.Store.Ui.TodaysDate)
 	content := ""
 
-	if todaysProgressPercent >= 100 {
+	if progress >= 1 {
 		content = "time to go home :)"
 	} else {
-		content = "0 [" + m.getStringBar(todaysProgressPercent) + "] 8h"
+		content = m.getProgressBar(progress)
 	}
 
+	s := style.GetSectionStyle(false).Width(m.Width)
+
 	return tea.NewView(
-		style.GetSectionStyle(false).Width(m.Width).Render(
+		s.Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
-				style.SectionTitle.Render(title),
+				style.SectionTitle.Render(
+					fmt.Sprintf("Days progress: %0.f%%", progress*100),
+				),
 				content,
 			),
 		),
 	)
 }
 
-const WORK_DAY_IN_MINUTES = 8 * 60
-
-func (m *Model) getStringBar(daysProgressPercent float64) string {
+func (m *Model) getProgressBar(progress float32) string {
 	charNumTotal := min(m.Width-12, 33)
-	ratio := daysProgressPercent / 100.0
-	charNumFilled := min(charNumTotal, int(ratio*float64(charNumTotal)))
+	numFilled := max(0, min(charNumTotal, int(progress*float32(charNumTotal))))
+	numEmpty := max(0, charNumTotal-numFilled)
 
 	var sb strings.Builder
-
-	for charId := range charNumTotal {
-		if charId < charNumFilled {
-			sb.WriteString(filled)
-		} else {
-			sb.WriteString(empty)
-		}
-	}
-
+	sb.WriteString("0 [")
+	sb.WriteString(strings.Repeat("#", numFilled))
+	sb.WriteString(strings.Repeat(" ", numEmpty))
+	sb.WriteString("] 8h")
 	return sb.String()
 }
-
-const filled = "#"
-const empty = " "
