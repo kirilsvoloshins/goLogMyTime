@@ -121,7 +121,9 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch keyString {
 		case "/":
-			cmds = append(cmds, globals.FocusZone(globals.ZoneTextInputTask))
+			if m.store.Task.TaskRecordActive == nil {
+				cmds = append(cmds, globals.FocusZone(globals.ZoneTextInputTask))
+			}
 
 		case "i":
 			cmds = append(cmds, globals.FocusZone(globals.InteractiveSections.EmbeddedFile.Zone))
