@@ -1,4 +1,4 @@
-package TasksRecent
+package TaskSection
 
 import (
 	"goLogMyTime/common/styles"
@@ -13,29 +13,29 @@ import (
 	zone "github.com/lrstanley/bubblezone/v2"
 )
 
-const PREFIX = "R"
-
 type Model struct {
 	Store     *store.RootStore
+	Zone      types.Zone
+	Shortcut  types.SectionShortcut
+	Title     string
+	Cursor    *int
+	TaskDefs  *types.TaskDefinitions
 	Width     int
 	IsFocused bool
-	Shortcut  types.SectionShortcut
-	Zone      types.Zone
 	taskLines []TaskLine.Model
 }
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	m.taskLines = []TaskLine.Model{}
 
-	taskDefs := m.Store.Task.TaskDefinitionsRecent
-	maxTicketLength := styles.GetLongestTicketLen(taskDefs)
+	maxTicketLength := styles.GetLongestTicketLen(*m.TaskDefs)
 
-	for i, taskDef := range taskDefs {
+	for i, taskDef := range *m.TaskDefs {
 		taskPadding := maxTicketLength - len(taskDef.Ticket)
 		taskLine := TaskLine.Model{
 			Store:       m.Store,
 			ZoneParent:  m.Zone,
-			IsSelected:  m.IsFocused && i == m.Store.Ui.TasksRecentCursor,
+			IsSelected:  m.IsFocused && i == *m.Cursor,
 			TaskDef:     taskDef,
 			TaskPadding: taskPadding,
 		}
@@ -58,8 +58,8 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		if m.IsFocused {
 			isToggleKey := utils.IsEnterKeyMsg(msg) || utils.IsSpaceKeyMsg(msg)
 
-			if isToggleKey && len(m.Store.Task.TaskDefinitionsRecent) > 0 {
-				taskDef := m.Store.Task.TaskDefinitionsRecent[m.Store.Ui.TasksRecentCursor]
+			if isToggleKey && len(*m.TaskDefs) > 0 {
+				taskDef := (*m.TaskDefs)[*m.Cursor]
 				m.Store.Task.TaskToggle(taskDef.Ticket)
 			}
 		}
@@ -74,7 +74,7 @@ func (m *Model) View() tea.View {
 	var sb strings.Builder
 	sb.WriteString(
 		style.SectionTitle.Render(
-			lipgloss.Sprintf("Recent tasks [%s] ", m.Shortcut),
+			lipgloss.Sprintf(m.Title+" [%s]", m.Shortcut),
 		),
 	)
 	for _, taskLine := range m.taskLines {

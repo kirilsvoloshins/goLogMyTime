@@ -125,8 +125,6 @@ func (s *TaskStore) TaskStart(ticket string) {
 	utils.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
 	utils.WriteTimestampOfLastActivity(s.TaskDefinitionMap, ticket)
 
-	// s.InputTicket = taskDefinition.Ticket
-	// s.InputDescription = taskDefinition.Info
 	s.RootStore.Sync()
 }
 
@@ -150,8 +148,6 @@ func (s *TaskStore) TasksStopAtDate(dateString string) {
 
 	utils.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
 
-	// s.InputTicket = ""
-	// s.InputDescription = ""
 	s.RootStore.Sync()
 }
 

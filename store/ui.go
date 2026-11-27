@@ -2,6 +2,7 @@ package store
 
 import (
 	"goLogMyTime/common/colors"
+	"goLogMyTime/common/globals"
 	"goLogMyTime/common/styles"
 	"goLogMyTime/types"
 	"time"
@@ -18,6 +19,34 @@ type UiStore struct {
 	InputTitle                   string
 	InputTicket                  string
 	FocusedZone                  types.Zone
+}
+
+func (s *UiStore) GetZone(next bool) types.Zone {
+	if next {
+		switch s.FocusedZone {
+		case globals.InteractiveSections.NowDoing.Zone:
+			return globals.InteractiveSections.TasksRecent.Zone
+		case globals.InteractiveSections.TasksRecent.Zone:
+			return globals.InteractiveSections.TasksFavorite.Zone
+		case globals.InteractiveSections.TasksFavorite.Zone:
+			return globals.InteractiveSections.TimeTable.Zone
+		case globals.InteractiveSections.TimeTable.Zone:
+			return globals.InteractiveSections.TimeTable.Zone
+		}
+	}
+
+	switch s.FocusedZone {
+	case globals.InteractiveSections.NowDoing.Zone:
+		return globals.InteractiveSections.NowDoing.Zone
+	case globals.InteractiveSections.TasksRecent.Zone:
+		return globals.InteractiveSections.NowDoing.Zone
+	case globals.InteractiveSections.TasksFavorite.Zone:
+		return globals.InteractiveSections.TasksRecent.Zone
+	case globals.InteractiveSections.TimeTable.Zone:
+		return globals.InteractiveSections.TasksFavorite.Zone
+	}
+
+	return globals.InteractiveSections.NowDoing.Zone
 }
 
 func (s *UiStore) ChangeThemeIndex(next bool) {

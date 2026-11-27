@@ -37,9 +37,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	case tea.MouseClickMsg:
 		if utils.IsLeftClickInBoundsOf(globals.ZoneNextDate, msg) {
 			m.Store.Ui.ChangeDaysOffset(true)
-		}
-
-		if utils.IsLeftClickInBoundsOf(globals.ZonePrevDate, msg) {
+		} else if utils.IsLeftClickInBoundsOf(globals.ZonePrevDate, msg) {
 			m.Store.Ui.ChangeDaysOffset(false)
 		}
 
@@ -65,7 +63,6 @@ func (m *Model) View() tea.View {
 		m.Store.Ui.TodaysDate,
 		m.Store.Ui.TimeTableDaysOffsetFromToday,
 	)
-	title := lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut)
 
 	var sb strings.Builder
 
@@ -103,7 +100,9 @@ func (m *Model) View() tea.View {
 		style.GetSectionStyle(m.IsFocused).Width(m.Width).Render(
 			lipgloss.JoinVertical(
 				lipgloss.Right,
-				style.SectionTitle.Render(title),
+				style.SectionTitle.Render(
+					lipgloss.Sprintf("Timetable for %s [%s]", dateString, m.Shortcut),
+				),
 				content,
 			),
 		),

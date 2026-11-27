@@ -91,14 +91,12 @@ func ShortcutToZone(shortcut types.SectionShortcut) types.Zone {
 }
 
 func FocusZone(zoneToFocus types.Zone) tea.Cmd {
-	// utils.Assert(false, string(zoneToFocus))
 	var cmdsFocus []tea.Cmd
 	var cmdsBlur []tea.Cmd
 
 	if zoneToFocus == ZoneUnfocused {
 		cmdsFocus = append(cmdsFocus, focusZoneCmd(ZoneUnfocused))
 
-		// for _, sectionZone := range ALL_SECTION_ZONES {
 		for _, sectionZone := range ALL_ZONES {
 			cmdsBlur = append(cmdsBlur, blurZoneCmd(sectionZone))
 		}
@@ -106,7 +104,6 @@ func FocusZone(zoneToFocus types.Zone) tea.Cmd {
 		shouldKeepNowDoingFocused := zoneToFocus == ZoneTextInputTask || zoneToFocus == ZoneTextInputTitle || zoneToFocus == ZoneCreateStartStop
 
 		for _, sectionZone := range ALL_ZONES {
-			// for _, sectionZone := range ALL_SECTION_ZONES {
 			if sectionZone == zoneToFocus {
 				cmdsFocus = append(cmdsFocus, focusZoneCmd(sectionZone))
 			} else if !(sectionZone == InteractiveSections.NowDoing.Zone && shouldKeepNowDoingFocused) {

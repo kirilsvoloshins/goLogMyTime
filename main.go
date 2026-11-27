@@ -12,8 +12,7 @@ import (
 	"goLogMyTime/components/HintsContextAware"
 	"goLogMyTime/components/InputWrapper"
 	"goLogMyTime/components/NowDoing"
-	"goLogMyTime/components/TasksFavorite"
-	"goLogMyTime/components/TasksRecent"
+	"goLogMyTime/components/TaskSection"
 	"goLogMyTime/components/TimeTable"
 	"goLogMyTime/components/TodaysProgress"
 	"goLogMyTime/store"
@@ -39,8 +38,8 @@ type BaseModel struct {
 	hintsContextAware *HintsContextAware.Model
 	nowDoing          *NowDoing.Model
 	todaysProgress    *TodaysProgress.Model
-	tasksRecent       *TasksRecent.Model
-	tasksFavorite     *TasksFavorite.Model
+	tasksRecent       *TaskSection.Model
+	tasksFavorite     *TaskSection.Model
 	timetable         *TimeTable.Model
 	embeddedMarkdown  *EmbeddedMarkdown.Model
 }
@@ -147,34 +146,34 @@ func (m *BaseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			case m.nowDoing.IsFocused:
 				if isDown {
-					cmds = append(cmds, globals.FocusZone(getNextSectionZone(m.nowDoing)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(true)))
 				}
 
 			case m.tasksRecent.IsFocused:
 				numTasks := len(m.store.Task.TaskDefinitionsRecent)
 
 				if isUp && !m.store.Ui.DecrementCursor(&m.store.Ui.TasksRecentCursor, numTasks) {
-					cmds = append(cmds, globals.FocusZone(getPrevSectionZone(m.tasksRecent)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(false)))
 				}
 
 				if isDown && !m.store.Ui.IncrementCursor(&m.store.Ui.TasksRecentCursor, numTasks) {
-					cmds = append(cmds, globals.FocusZone(getNextSectionZone(m.tasksRecent)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(true)))
 				}
 
 			case m.tasksFavorite.IsFocused:
 				numTasks := len(m.store.Task.TaskDefinitionsFavorite)
 
 				if isUp && !m.store.Ui.DecrementCursor(&m.store.Ui.TasksFavoriteCursor, numTasks) {
-					cmds = append(cmds, globals.FocusZone(getPrevSectionZone(m.tasksFavorite)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(false)))
 				}
 
 				if isDown && !m.store.Ui.IncrementCursor(&m.store.Ui.TasksFavoriteCursor, numTasks) {
-					cmds = append(cmds, globals.FocusZone(getNextSectionZone(m.tasksFavorite)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(true)))
 				}
 
 			case m.timetable.IsFocused:
 				if isUp {
-					cmds = append(cmds, globals.FocusZone(getPrevSectionZone(m.timetable)))
+					cmds = append(cmds, globals.FocusZone(m.store.Ui.GetZone(false)))
 				}
 			}
 		}
@@ -257,15 +256,21 @@ func main() {
 	app := BaseModel{
 		store:             rootStore,
 		hintsContextAware: &HintsContextAware.Model{Store: rootStore},
-		tasksRecent: &TasksRecent.Model{
+		tasksRecent: &TaskSection.Model{
 			Store:    rootStore,
 			Zone:     globals.InteractiveSections.TasksRecent.Zone,
 			Shortcut: globals.InteractiveSections.TasksRecent.Shortcut,
+			Title:    "Recent tasks",
+			Cursor:   &rootStore.Ui.TasksRecentCursor,
+			TaskDefs: &rootStore.Task.TaskDefinitionsRecent,
 		},
-		tasksFavorite: &TasksFavorite.Model{
+		tasksFavorite: &TaskSection.Model{
 			Store:    rootStore,
 			Zone:     globals.InteractiveSections.TasksFavorite.Zone,
 			Shortcut: globals.InteractiveSections.TasksFavorite.Shortcut,
+			Title:    "Favorite tasks",
+			Cursor:   &rootStore.Ui.TasksFavoriteCursor,
+			TaskDefs: &rootStore.Task.TaskDefinitionsFavorite,
 		},
 		nowDoing: &NowDoing.Model{
 			Store:                 rootStore,
@@ -312,30 +317,4 @@ func main() {
 		fmt.Printf("Error: %v", err)
 		os.Exit(1)
 	}
-}
-
-func getPrevSectionZone(modelPtr any) types.Zone {
-	switch modelPtr.(type) {
-	case *TasksRecent.Model:
-		return globals.InteractiveSections.NowDoing.Zone
-	case *TasksFavorite.Model:
-		return globals.InteractiveSections.TasksRecent.Zone
-	case *TimeTable.Model:
-		return globals.InteractiveSections.TasksFavorite.Zone
-	}
-
-	return globals.ZoneUnfocused
-}
-
-func getNextSectionZone(modelPtr any) types.Zone {
-	switch modelPtr.(type) {
-	case *NowDoing.Model:
-		return globals.InteractiveSections.TasksRecent.Zone
-	case *TasksRecent.Model:
-		return globals.InteractiveSections.TasksFavorite.Zone
-	case *TasksFavorite.Model:
-		return globals.InteractiveSections.TimeTable.Zone
-	}
-
-	return globals.ZoneUnfocused
 }
