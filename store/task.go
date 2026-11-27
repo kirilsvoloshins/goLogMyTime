@@ -194,7 +194,10 @@ func (s *TaskStore) GetTimeTable(dateString string) *types.TimeTable {
 	}
 
 	sort.Slice(timetable, func(i, j int) bool {
-		return timetable[i].Minutes > timetable[j].Minutes
+		if timetable[i].Minutes != timetable[j].Minutes {
+			return timetable[i].Minutes > timetable[j].Minutes
+		}
+		return timetable[i].Ticket < timetable[j].Ticket
 	})
 
 	return &timetable
