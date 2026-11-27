@@ -56,10 +56,22 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		if m.IsFocused {
+			if len(*m.TaskDefs) == 0 {
+				break
+			}
+
+			taskDef := (*m.TaskDefs)[*m.Cursor]
+
+			isFavoriteKey := msg.String() == "f"
+
+			if isFavoriteKey {
+				m.Store.Task.TaskFavoriteToggle(taskDef.Ticket)
+				break
+			}
+
 			isToggleKey := utils.IsEnterKeyMsg(msg) || utils.IsSpaceKeyMsg(msg)
 
-			if isToggleKey && len(*m.TaskDefs) > 0 {
-				taskDef := (*m.TaskDefs)[*m.Cursor]
+			if isToggleKey {
 				m.Store.Task.TaskToggle(taskDef.Ticket)
 			}
 		}

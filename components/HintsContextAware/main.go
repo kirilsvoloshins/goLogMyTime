@@ -32,16 +32,17 @@ func (m *Model) View() tea.View {
 const (
 	hintExit                = "ctrl+c = exit"
 	hintUnfocusInput        = "esc = focus now doing"
-	hintChangeColorTheme    = "t/T = change color theme"
-	hintFocusShortcuts      = "1,2,3,4,5 = shortcuts to focus [section]"
-	hintGoUp                = "k,up = ↑ go up"
-	hintGoDown              = "j,down = ↓ go down"
-	hintSwitchBetweenInputs = "tab/shift+tab = ← → switch between inputs"
-	hintStartTaskFromInput  = "Enter = start/stop task from valid input"
-	hintToggleSelected      = "Enter/space = toggle selected task"
-	hintNextDate            = "tab = → next timetable date"
-	hintPrevDate            = "shift+tab = ← prev timetable date"
-	hintFocusTaskInput      = "/ = focus task input"
+	hintChangeColorTheme    = "t/T = theme"
+	hintFocusShortcuts      = "1,2,3,4,5 = focus [section]"
+	hintGoUp                = "k,up = ↑ up"
+	hintGoDown              = "j,down = ↓ down"
+	hintSwitchBetweenInputs = "tab/shift+tab = ← → jump between inputs"
+	hintStartTaskFromInput  = "Enter = start/stop from valid input"
+	hintToggleSelected      = "Enter/space = toggle task"
+	hintFavoriteSelected    = "f = toggle favorite"
+	hintNextDate            = "tab = → next date"
+	hintPrevDate            = "shift+tab = ← prev date"
+	hintFocusTaskInput      = "/ = focus task"
 	hintFocusNotes          = "i = focus notes"
 )
 
@@ -56,7 +57,7 @@ func (m *Model) getHintsOfActiveSection(zoneActive types.Zone) string {
 	case globals.ZoneTextInputTitle, globals.ZoneTextInputTask:
 		hints = append(hints, hintUnfocusInput, hintSwitchBetweenInputs, hintStartTaskFromInput)
 	case globals.InteractiveSections.TasksRecent.Zone, globals.InteractiveSections.TasksFavorite.Zone:
-		hints = append(hints, hintFocusTaskInput, hintFocusNotes, hintToggleSelected, hintGoUp, hintGoDown, hintFocusShortcuts, hintChangeColorTheme)
+		hints = append(hints, hintFocusTaskInput, hintFocusNotes, hintToggleSelected, hintFavoriteSelected, hintGoUp, hintGoDown, hintFocusShortcuts, hintChangeColorTheme)
 	case globals.InteractiveSections.TimeTable.Zone:
 		hints = append(hints, hintFocusTaskInput, hintFocusNotes, hintPrevDate, hintNextDate, hintGoUp, hintFocusShortcuts, hintChangeColorTheme)
 	case globals.InteractiveSections.EmbeddedFile.Zone:
@@ -65,5 +66,5 @@ func (m *Model) getHintsOfActiveSection(zoneActive types.Zone) string {
 
 	hints = append(hints, hintExit)
 
-	return "  " + strings.Join(hints, "  •  ")
+	return " " + strings.Join(hints, " • ")
 }
