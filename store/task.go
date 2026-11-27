@@ -67,7 +67,7 @@ func (s *TaskStore) TaskCreateAndStart(ticket string, title string) {
 		IsFavorite:              false,
 		TimestampOfLastActivity: 0,
 	}
-	utils.WriteTaskDefinitionMap(s.TaskDefinitionMap)
+	s.RootStore.Storage.WriteTaskDefinitionMap(s.TaskDefinitionMap)
 
 	s.TaskStart(ticket)
 }
@@ -122,8 +122,8 @@ func (s *TaskStore) TaskStart(ticket string) {
 		},
 	)
 
-	utils.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
-	utils.WriteTimestampOfLastActivity(s.TaskDefinitionMap, ticket)
+	s.RootStore.Storage.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
+	s.RootStore.Storage.WriteTimestampOfLastActivity(s.TaskDefinitionMap, ticket)
 
 	s.RootStore.Sync()
 }
@@ -142,11 +142,11 @@ func (s *TaskStore) TasksStopAtDate(dateString string) {
 			taskDefinition, ok := s.TaskDefinitionMap[taskRecordsAtDate[i].Ticket]
 			utils.Assert(ok, "failed to map task record to its definition")
 
-			utils.WriteTimestampOfLastActivity(s.TaskDefinitionMap, taskDefinition.Ticket)
+			s.RootStore.Storage.WriteTimestampOfLastActivity(s.TaskDefinitionMap, taskDefinition.Ticket)
 		}
 	}
 
-	utils.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
+	s.RootStore.Storage.WriteTaskRecordsByDateMap(s.TaskRecordsByDateMap)
 
 	s.RootStore.Sync()
 }
@@ -161,7 +161,7 @@ func (s *TaskStore) TaskFavoriteToggle(ticket types.Ticket) {
 	utils.Assert(exists, "does not exist")
 	taskDef.IsFavorite = !taskDef.IsFavorite
 	s.TaskDefinitionMap[ticket] = taskDef
-	utils.WriteTaskDefinitionMap(s.TaskDefinitionMap)
+	s.RootStore.Storage.WriteTaskDefinitionMap(s.TaskDefinitionMap)
 	s.RootStore.Sync()
 }
 

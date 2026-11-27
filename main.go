@@ -243,17 +243,10 @@ func (m BaseModel) IsAnyTextInputFocused() bool {
 }
 
 func main() {
-	utils.ReadDataDir()
-	utils.CreateTasksFileIfMissing(utils.TASK_DEFINITIONS_PATH)
-	utils.CreateTasksFileIfMissing(utils.TASK_RECORDS_PATH)
-	utils.CreateSettingsIfMissing()
-	settings := utils.ReadSettings()
-
-	rootStore := store.New(settings)
-
 	zone.NewGlobal()
 
-	embeddedMarkdownModel := EmbeddedMarkdown.InitialModel(utils.MARKDOWN_PATH, rootStore)
+	rootStore := store.New()
+	embeddedMarkdownModel := EmbeddedMarkdown.InitialModel(globals.MARKDOWN_PATH, rootStore)
 
 	app := BaseModel{
 		store:             rootStore,

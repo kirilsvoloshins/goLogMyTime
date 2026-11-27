@@ -3,20 +3,28 @@ package store
 import (
 	"goLogMyTime/common/globals"
 	"goLogMyTime/common/styles"
-	"goLogMyTime/types"
 	"goLogMyTime/utils"
 	"time"
 )
 
 type RootStore struct {
-	Task *TaskStore
-	Ui   *UiStore
+	Storage *StorageStore
+	Task    *TaskStore
+	Ui      *UiStore
 }
 
-func New(settings *types.Settings) *RootStore {
+func New() *RootStore {
 	rootStore := &RootStore{}
-	rootStore.Task = &TaskStore{RootStore: rootStore}
-	rootStore.Ui = &UiStore{ThemeIndex: settings.ThemeIndex, FocusedZone: globals.ZoneUnfocused}
+	rootStore.Storage = &StorageStore{
+		File: InitFileStore(),
+	}
+	rootStore.Task = &TaskStore{
+		RootStore: rootStore,
+	}
+	rootStore.Ui = &UiStore{
+		ThemeIndex:  rootStore.Storage.ReadSettings().ThemeIndex,
+		FocusedZone: globals.ZoneUnfocused,
+	}
 
 	rootStore.Sync()
 	return rootStore
@@ -24,8 +32,8 @@ func New(settings *types.Settings) *RootStore {
 
 func (s *RootStore) Sync() {
 	s.Ui.TodaysDate = time.Now()
-	s.Task.TaskDefinitionMap = utils.ReadTaskDefinitionMap()
-	s.Task.TaskRecordsByDateMap = utils.ReadTaskRecordsByDateMap()
+	s.Task.TaskDefinitionMap = s.Storage.ReadTaskDefinitionMap()
+	s.Task.TaskRecordsByDateMap = s.Storage.ReadTaskRecordsByDateMap()
 	s.Task.TaskRecordActive = s.Task.GetTaskRecordActive()
 	s.Task.TaskDefinitionActive = s.Task.GetTaskDefinitionFromRecord(s.Task.TaskRecordActive)
 	s.Task.TaskDefinitionsFavorite = s.Task.GetTaskDefinitionsFavorite()

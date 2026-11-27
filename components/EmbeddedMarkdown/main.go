@@ -4,7 +4,6 @@ import (
 	"goLogMyTime/common/globals"
 	"goLogMyTime/store"
 	"goLogMyTime/types"
-	"goLogMyTime/utils"
 	"os"
 
 	"charm.land/bubbles/v2/textarea"
@@ -28,9 +27,10 @@ type Model struct {
 	Width     int
 }
 
+// TODO: shouldn't it go through storage store?
 func saveFileCmd(path string, content string) tea.Cmd {
 	return func() tea.Msg {
-		err := os.WriteFile(path, []byte(content), utils.READ_WRITE_PERM)
+		err := os.WriteFile(path, []byte(content), globals.READ_WRITE_PERM)
 		return saveFileMsg{err: err}
 	}
 }
