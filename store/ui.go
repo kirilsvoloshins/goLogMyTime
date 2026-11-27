@@ -5,6 +5,7 @@ import (
 	"goLogMyTime/common/globals"
 	"goLogMyTime/common/styles"
 	"goLogMyTime/types"
+	"goLogMyTime/utils"
 	"time"
 )
 
@@ -56,28 +57,36 @@ func (s *UiStore) ChangeThemeIndex(next bool) {
 		step = 1
 	}
 
-	themeIndexNext := s.ThemeIndex + step
-	if themeIndexNext >= 0 && themeIndexNext < len(colors.Palettes) {
-		s.ThemeIndex = themeIndexNext
-		s.Style = styles.GetStyle(s.ThemeIndex)
-	}
+	cursor := utils.ClampCursor(s.ThemeIndex+step, len(colors.Palettes))
+	s.ThemeIndex = cursor
+	s.Style = styles.GetStyle(s.ThemeIndex)
 }
 
-func (s *UiStore) IncrementCursor(cursor *int, numTasks int) bool {
-	if numTasks == 0 || *cursor == numTasks-1 {
+func (s *UiStore) IncrementCursor(pCursor *int, numTasks int) bool {
+	if numTasks == 0 {
 		return false
 	}
 
-	*cursor++
+	next := utils.ClampCursor(*pCursor+1, numTasks)
+	if next <= *pCursor {
+		return false
+	}
+
+	*pCursor++
 	return true
 }
 
-func (s *UiStore) DecrementCursor(cursor *int, numTasks int) bool {
-	if numTasks == 0 || *cursor == 0 {
+func (s *UiStore) DecrementCursor(pCursor *int, numTasks int) bool {
+	if numTasks == 0 {
 		return false
 	}
 
-	*cursor--
+	next := utils.ClampCursor(*pCursor-1, numTasks)
+	if next >= *pCursor {
+		return false
+	}
+
+	*pCursor--
 	return true
 }
 
