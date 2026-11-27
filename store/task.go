@@ -214,7 +214,7 @@ func (s *TaskStore) GetTodaysProgress(todaysDate time.Time) float32 {
 		workTimeMin += entry.Minutes
 	}
 
-	return float32(workTimeMin / globals.WORK_DAY_IN_MINUTES)
+	return float32(float32(workTimeMin) / globals.WORK_DAY_IN_MINUTES)
 }
 
 func (s *TaskStore) GetDateAndTimeTable(todaysDate time.Time, offsetFromToday int) (string, *types.TimeTable) {

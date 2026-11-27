@@ -11,7 +11,7 @@ const READ_WRITE_PERM os.FileMode = 0644
 const DATA_DIR = "./data/"
 const MARKDOWN_PATH = DATA_DIR + "main.md"
 
-const WORK_DAY_IN_MINUTES = 8 * 60
+var WORK_DAY_IN_MINUTES float32 = 8 * 60
 
 const (
 	ZoneUnfocused       = "none"

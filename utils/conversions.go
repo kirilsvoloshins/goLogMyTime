@@ -33,8 +33,8 @@ func MapPointerToArrayRecent(taskDefinitionMap *types.TaskDefinitionMap) types.T
 	tasksSortedByModified := MapPointerToArrayByModified(taskDefinitionMap)
 
 	var tasksRecentCapped types.TaskDefinitions
-	if len(tasksSortedByModified) >= 5 {
-		tasksRecentCapped = make(types.TaskDefinitions, 5)
+	if len(tasksSortedByModified) >= 8 {
+		tasksRecentCapped = make(types.TaskDefinitions, 8)
 	} else {
 		tasksRecentCapped = make(types.TaskDefinitions, len(tasksSortedByModified))
 	}
